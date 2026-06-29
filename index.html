@@ -83,10 +83,24 @@
   /* ===== Screens ===== */
   .screen { position: absolute; inset: 0; }
 
+  /* ---- Loading bar (simulated page loads) ---- */
+  .loadbar {
+    position: absolute; top: 0; left: 0; height: 3px; width: 0;
+    background: linear-gradient(90deg, #6ea8ff, #8be0c0);
+    z-index: 15; opacity: 0; box-shadow: 0 0 8px rgba(110,168,255,.6);
+  }
+  .loadbar.show { opacity: 1; }
+
+  /* skeleton placeholder while loading */
+  .sk { padding: 4px 0; }
+  .sk .b { background: var(--surface-2); border-radius: 8px; margin-bottom: 14px; opacity: .7;
+    animation: skp 1s ease-in-out infinite alternate; }
+  @keyframes skp { from{opacity:.4} to{opacity:.85} }
+
   /* ---- Web view (base) ---- */
   .page {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-    overflow-y: auto; touch-action: pan-y;
+    overflow-y: auto; overflow-x: hidden; touch-action: pan-y;
     padding: 26px 22px 120px;          /* clearance so content clears the floating bar */
   }
   .page::-webkit-scrollbar { display: none; }
@@ -206,6 +220,49 @@
   .page.light .site .tag { background: #ececef; border-color: #dcdce0; color: #6a6a70; }
   .page.light .site .foot { border-top-color: #e3e3e6; }
   .page.light .site a { color: #1a5fd0; }
+
+  /* ---- News template ---- */
+  .news h1 { font-size: 28px; margin-bottom: 6px; }
+  .news .meta { color: var(--dim); font-size: 13px; margin-bottom: 20px; }
+  .news .ni { display: flex; gap: 14px; padding: 14px 0; border-top: 1px solid var(--line); cursor: pointer; }
+  .news .ni:active { opacity: .6; }
+  .news .ni .thumb { flex: 0 0 auto; width: 84px; height: 60px; border-radius: 10px;
+    background: linear-gradient(135deg, #2a2a2a, #161616); }
+  .news .ni .nt { font-size: 16px; line-height: 1.35; margin-bottom: 6px; color: var(--text); }
+  .news .ni .ns { font-size: 12px; color: var(--dim); }
+  .news .more { margin-top: 18px; font-size: var(--page-font); color: var(--dim); }
+
+  /* ---- Cards template ---- */
+  .cards h1 { font-size: 28px; margin-bottom: 4px; }
+  .cards .meta { color: var(--dim); font-size: 13px; margin-bottom: 18px; }
+  .cards .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .cards .card { cursor: pointer; }
+  .cards .card:active { opacity: .7; }
+  .cards .card .img { height: 120px; border-radius: 14px; margin-bottom: 8px; }
+  .cards .card .ct { font-size: 15px; color: var(--text); }
+  .cards .card .cs { font-size: 12px; color: var(--dim); }
+
+  /* ---- Funky Brazil page ---- */
+  .page.funky { background: #FFDF00; padding: 0; }
+  .funky .fk { padding: 34px 22px 130px; color: #002776;
+    font-family: "Sora", system-ui, sans-serif; }
+  .funky .fk .tag { display: inline-block; background: #002776; color: #FFDF00;
+    font-weight: 700; padding: 8px 16px; border-radius: 40px; transform: rotate(-3deg);
+    font-size: 15px; letter-spacing: 1px; }
+  .funky .fk .h1 { font-size: 92px; line-height: .86; font-weight: 700; color: #009B3A;
+    letter-spacing: -3px; margin: 20px 0 6px; transform: rotate(-2deg); text-transform: uppercase; }
+  .funky .fk .sub { font-size: 24px; font-weight: 700; color: #002776; margin-bottom: 26px; }
+  .funky .fk .blocks { display: flex; gap: 10px; margin: 0 0 28px; }
+  .funky .fk .blocks i { flex: 1; height: 76px; border-radius: 16px; display: block; transform: rotate(-1deg); }
+  .funky .fk .blocks i:nth-child(2){ transform: rotate(2deg); }
+  .funky .fk .mega { font-size: 84px; line-height: .82; font-weight: 700; color: #FFDF00;
+    -webkit-text-stroke: 3px #002776; text-stroke: 3px #002776; margin: 10px 0 22px;
+    transform: rotate(1.5deg); text-transform: uppercase; letter-spacing: -2px; }
+  .funky .fk .p { font-size: 19px; line-height: 1.4; font-weight: 600; color: #002776; margin-bottom: 18px; }
+  .funky .fk .big2 { font-size: 60px; font-weight: 700; color: #009B3A; line-height: .9;
+    transform: rotate(-2deg); text-transform: uppercase; margin: 24px 0; }
+  .funky .fk a { display: inline-block; background: #009B3A; color: #fff; font-weight: 700;
+    padding: 12px 20px; border-radius: 40px; font-size: 16px; }
 
   /* ---- Bottom bar ---- */
   .bottombar {
@@ -486,6 +543,7 @@
 
     <!-- ================= WEB VIEW ================= -->
     <div class="screen" id="webview">
+      <div class="loadbar" id="loadbar"></div>
       <div class="page" id="page"></div>
 
       <div class="bottombar">
@@ -722,26 +780,67 @@
   }
   function wireHome(){ /* links handled by delegation below */ }
 
-  function renderPage(){
+  function pickTemplate(host){
+    const h = (host||'').toLowerCase();
+    if(h.includes('heavypaint') || h.includes('funk') || h.includes('brazil')) return 'funky';
+    if(h.includes('monkeytype') || h.includes('news') || h.includes('blog')) return 'news';
+    if(h.includes('foss') || h.includes('store') || h.includes('shop') || h.includes('gallery')) return 'cards';
+    return 'article';
+  }
+
+  // paint the active tab's content immediately
+  function paintPage(){
     const t = active();
     addrInput.value = t.url;
-    pageEl.className = 'page' + (t.kind === 'site' && t.theme === 'light' ? ' light' : '');
+    let cls = 'page';
     if(t.kind === 'home'){
-      pageEl.innerHTML = homePage();
-      wireHome();
+      pageEl.className = cls; pageEl.innerHTML = homePage(); wireHome();
     } else if(t.kind === 'query'){
-      const q = t.title;
-      let rows = '';
+      pageEl.className = cls;
+      const q = t.title; let rows = '';
       for(let i=1;i<=5;i++){
         rows += `<div class="result"><div class="rt">${esc(q)} — result ${i}</div><div class="ru">example${i}.com/${encodeURIComponent(q)}</div></div>`;
       }
       pageEl.innerHTML = `<h1>Results for “${esc(q)}”</h1><div class="u">${esc(t.url)}</div>${rows}`;
     } else {
-      pageEl.innerHTML = fakePage(t.title);
+      const tpl = pickTemplate(t.title);
+      cls += tpl === 'funky' ? ' funky' : (t.theme === 'light' ? ' light' : '');
+      pageEl.className = cls;
+      pageEl.innerHTML = renderTemplate(tpl, t.title);
     }
-    pageEl.scrollTop = 0;
-    lastScroll = 0;
-    showBar();
+    pageEl.scrollTop = 0; lastScroll = 0; showBar();
+  }
+  function renderPage(){ paintPage(); }
+
+  // chrome (everything except the page body)
+  function renderChrome(){
+    const t = active();
+    addrInput.value = t.url;
+    renderTabCount(); renderTabGrid(); updateNavButtons();
+  }
+
+  // simulated load: progress bar + skeleton, then paint after a slight delay
+  let loadToken = 0;
+  function skeleton(){
+    const w = [70, 92, 60, 84, 76, 50];
+    let h = '<div class="b" style="height:150px;border-radius:14px"></div>';
+    h += '<div class="b" style="height:26px;width:80%"></div>';
+    h += w.map(p => `<div class="b" style="height:14px;width:${p}%"></div>`).join('');
+    return '<div class="sk">' + h + '</div>';
+  }
+  function beginLoad(){
+    const my = ++loadToken;
+    const lb = document.getElementById('loadbar');
+    pageEl.className = 'page'; pageEl.innerHTML = skeleton(); pageEl.scrollTop = 0; showBar();
+    lb.classList.add('show'); lb.style.transition = 'none'; lb.style.width = '0%';
+    requestAnimationFrame(() => { lb.style.transition = 'width .55s cubic-bezier(.2,.8,.3,1)'; lb.style.width = '85%'; });
+    const dur = 280 + Math.random() * 620;     // slight, varied load time
+    setTimeout(() => {
+      if(my !== loadToken) return;
+      paintPage();
+      lb.style.transition = 'width .18s ease'; lb.style.width = '100%';
+      setTimeout(() => { if(my === loadToken){ lb.classList.remove('show'); lb.style.width = '0%'; } }, 220);
+    }, dur);
   }
 
   function fakePage(host){
@@ -776,11 +875,73 @@
       <div class="linklist">
         <a data-go="comet.design/edge-gestures">→ Edge gestures, end to end</a>
         <a data-go="comet.design/keyboard">→ The pop-up keyboard</a>
-        <a data-go="comet.design/tabs">→ Tabs and the switcher</a>
+        <a data-go="news.monkeytype.com">→ Speed-typing dispatch</a>
+        <a data-go="foss.org">→ The FOSS gallery</a>
+        <a data-go="heavypaint.app">→ HEAVYPAINT, painted loud</a>
       </div>
       <p>${L} Tap any link above to move forward, then swipe in from either edge to go back.</p>
       <div class="foot">© ${new Date().getFullYear()} ${esc(Name)} · This is a mock page for prototype purposes.</div>
     </div>`;
+  }
+
+  function cap(h){ const n=(h.split('.')[0]||'site'); return n.charAt(0).toUpperCase()+n.slice(1); }
+
+  function pageNews(host){
+    const N = cap(host);
+    const items = [
+      ['New keyboard layouts land', 'monkeytype.com · 1h', 'monkeytype.com'],
+      ['The case for edge gestures', 'comet.design · 3h', 'comet.design'],
+      ['Open source, openly funded', 'foss.org · 5h', 'foss.org'],
+      ['Painting loud, painting fast', 'heavypaint.app · 8h', 'heavypaint.app'],
+      ['Tiny screens, big ideas', 'comet.design · 1d', 'comet.design/ideas'],
+    ];
+    const rows = items.map(([t,s,go]) =>
+      `<div class="ni" data-go="${go}"><div class="thumb"></div><div><div class="nt">${esc(t)}</div><div class="ns">${esc(s)}</div></div></div>`).join('');
+    return `<div class="site news">
+      <div class="brandbar"><div class="logo">${esc(N[0])}</div><div class="name">${esc(N)}</div><div class="nav">Live</div></div>
+      <h1>Today on ${esc(N)}</h1>
+      <div class="meta">${esc(host)} · updated just now</div>
+      ${rows}
+      <div class="more">Or jump straight to <a data-go="heavypaint.app">Heavypaint</a>.</div>
+    </div>`;
+  }
+
+  function pageCards(host){
+    const N = cap(host);
+    const cards = [
+      ['Mirror','#2a2f2a','foss.org/mirror'], ['Kernel','#26262e','foss.org/kernel'],
+      ['Toolkit','#2e2a26','foss.org/toolkit'], ['Docs','#262a2e','foss.org/docs'],
+      ['Forum','#2a262a','foss.org/forum'], ['Loud paint','#3a2a10','heavypaint.app'],
+    ];
+    const grid = cards.map(([t,c,go]) =>
+      `<div class="card" data-go="${go}"><div class="img" style="background:linear-gradient(135deg, ${c}, #141414)"></div><div class="ct">${esc(t)}</div><div class="cs">${esc(go)}</div></div>`).join('');
+    return `<div class="site cards">
+      <div class="brandbar"><div class="logo">${esc(N[0])}</div><div class="name">${esc(N)}</div><div class="nav">Browse</div></div>
+      <h1>${esc(N)} gallery</h1>
+      <div class="meta">${esc(host)} · 6 collections</div>
+      <div class="grid2">${grid}</div>
+    </div>`;
+  }
+
+  function pageFunky(host){
+    return `<div class="fk">
+      <div class="tag">★ HEAVYPAINT ★</div>
+      <div class="h1">Paint<br>Loud</div>
+      <div class="sub">tropical · heavy · fast</div>
+      <div class="blocks"><i style="background:#009B3A"></i><i style="background:#002776"></i><i style="background:#fff"></i></div>
+      <div class="mega">Obrigado</div>
+      <p class="p">No rules, just big brushes and bigger colours. Smear, splash, repeat — your thumb is the canvas.</p>
+      <div class="big2">Tudo<br>Bem</div>
+      <p class="p">${esc(host)} — a mock page for prototype purposes.</p>
+      <a data-go="comet.design">← back to Comet</a>
+    </div>`;
+  }
+
+  function renderTemplate(tpl, host){
+    if(tpl === 'funky') return pageFunky(host);
+    if(tpl === 'news')  return pageNews(host);
+    if(tpl === 'cards') return pageCards(host);
+    return fakePage(host);
   }
 
   function renderTabCount(){
@@ -893,7 +1054,8 @@
       state.history = state.history.filter(h => h.url !== p.url);
       state.history.unshift({ title:p.title, url:p.url, kind:p.kind });
     }
-    renderAll();
+    renderChrome();
+    if(p.kind === 'home'){ paintPage(); } else { beginLoad(); }   // home is instant; sites "load"
   }
   function goBack(){
     const t = active();
@@ -1000,7 +1162,7 @@
   // menu bottom row
   document.getElementById('navBack').addEventListener('click', () => { goBack(); });
   document.getElementById('navFwd').addEventListener('click', () => { goFwd(); });
-  document.getElementById('navReload').addEventListener('click', () => { renderPage(); });
+  document.getElementById('navReload').addEventListener('click', () => { closeMenu(); const t = active(); if(t.kind === 'site' || t.kind === 'query') beginLoad(); else paintPage(); });
   document.getElementById('navBookmark').addEventListener('click', () => { toggleBookmarkCurrent(); });
 
   // System back. Unwinds whatever layer is open: panel → menu → tabs sheet → page back.
