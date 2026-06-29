@@ -400,8 +400,10 @@
     background: #1c1c1c;
   }
   .menu .row button {
+    -webkit-appearance: none; appearance: none;
+    border: none; outline: none; box-shadow: none; padding: 0;
     width: 52px; height: 52px; border-radius: 8px;
-    background: #333333; border: none; color: var(--text);
+    background: #333333; color: var(--text);
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: transform .08s, background .12s;
   }
