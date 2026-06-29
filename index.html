@@ -87,7 +87,7 @@
   .page {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
     overflow-y: auto; touch-action: pan-y;
-    padding: 26px 22px 100px;          /* clearance so content clears the floating bar */
+    padding: 26px 22px 120px;          /* clearance so content clears the floating bar */
   }
   .page::-webkit-scrollbar { display: none; }
   .page h1 { font-size: 30px; font-weight: 700; margin-bottom: 6px; }
@@ -187,7 +187,7 @@
   /* ---- Bottom bar ---- */
   .bottombar {
     position: absolute; left: 0; right: 0; bottom: 0;
-    height: 80px; padding: 10px 14px 20px;
+    height: 100px; padding: 10px 14px 40px;
     display: flex; align-items: center; gap: 8px;
     background: var(--bg);
     transition: transform .26s cubic-bezier(.4,0,.2,1);
@@ -982,6 +982,33 @@
   }
   grab.addEventListener('pointerup', endDrag);
   grab.addEventListener('pointercancel', endDrag);
+
+  // Pull down on the tab list while it's scrolled to the top → dismiss the sheet too
+  (function(){
+    const grid = document.getElementById('tabGrid');
+    let sy = 0, pulling = false, pdy = 0, pid = null;
+    grid.addEventListener('pointerdown', (e) => { sy = e.clientY; pulling = false; pdy = 0; pid = e.pointerId; });
+    grid.addEventListener('pointermove', (e) => {
+      if(pid === null) return;
+      const d = e.clientY - sy;
+      if(!pulling){
+        if(grid.scrollTop <= 0 && d > 6){ pulling = true; sheet.style.transition = 'none'; try { grid.setPointerCapture(pid); } catch(_){} }
+        else return;
+      }
+      pdy = Math.max(0, d);
+      e.preventDefault();
+      sheet.style.transform = 'translateY(' + pdy + 'px)';
+    });
+    function end(){
+      if(pid === null) return;
+      const was = pulling, d = pdy;
+      try { grid.releasePointerCapture(pid); } catch(_){}
+      pid = null; pulling = false; pdy = 0;
+      if(was){ sheet.style.transition = ''; sheet.style.transform = ''; if(d > 120) closeSheet(); }
+    }
+    grid.addEventListener('pointerup', end);
+    grid.addEventListener('pointercancel', end);
+  })();
 
   // ---------- Hide bottom bar on scroll-down, reveal on scroll-up ----------
   const bottombar = document.querySelector('.bottombar');
