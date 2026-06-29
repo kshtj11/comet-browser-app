@@ -208,11 +208,23 @@
     height: 100px; padding: 10px 24px 30px;
     display: flex; align-items: center; gap: 8px;
     background: var(--bg);
-    transition: transform .26s cubic-bezier(.4,0,.2,1), bottom .25s cubic-bezier(.4,0,.2,1);
+    transition: transform .26s cubic-bezier(.4,0,.2,1), bottom .25s cubic-bezier(.4,0,.2,1), height .25s, padding .25s;
   }
   .bottombar.hidden { transform: translateY(105%); }
-  /* when the on-screen keyboard is up, the bar rides on top of it */
-  .frame.kbd-open .bottombar { bottom: 240px; }
+  /* when the on-screen keyboard is up, the bar rides on top of it,
+     tightens its bottom padding, and the address bar takes the whole row */
+  .frame.kbd-open .bottombar { bottom: 240px; height: 80px; padding-bottom: 10px; }
+  .frame.kbd-open .bottombar .iconbtn { display: none; }
+
+  .addr-clear {
+    flex: 0 0 auto; display: none;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--surface-3); border: none; color: var(--text);
+    align-items: center; justify-content: center; cursor: pointer;
+    -webkit-appearance: none; appearance: none; padding: 0;
+  }
+  .addr-clear svg { width: 16px; height: 16px; }
+  .frame.kbd-open .addr-clear { display: flex; }
 
   /* ---- On-screen keyboard (system) ---- */
   .kbd {
@@ -475,6 +487,9 @@
             <rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>
           </svg>
           <input id="addrInput" type="text" placeholder="Search or enter address" autocomplete="off" spellcheck="false" enterkeyhint="go">
+          <button type="button" class="addr-clear" id="addrClear" aria-label="Clear text">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+          </button>
         </form>
 
         <button class="iconbtn" id="plusBtn" title="New tab" aria-label="New tab">
@@ -939,6 +954,17 @@
     addrInput.blur();
   });
   addrInput.addEventListener('focus', () => addrInput.select());
+
+  // Clear (X) inside the address bar — keeps focus + keyboard open
+  (function(){
+    const clr = document.getElementById('addrClear');
+    clr.addEventListener('pointerdown', (e) => e.preventDefault());   // don't blur the input
+    clr.addEventListener('click', () => {
+      addrInput.value = '';
+      addrInput.dispatchEvent(new Event('input'));
+      addrInput.focus();
+    });
+  })();
 
   document.getElementById('plusBtn').addEventListener('click', newTab);
   document.getElementById('tabsBtn').addEventListener('click', openSheet);
