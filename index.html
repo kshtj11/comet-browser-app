@@ -187,18 +187,18 @@
   /* ---- Bottom bar ---- */
   .bottombar {
     position: absolute; left: 0; right: 0; bottom: 0;
-    height: 100px; padding: 10px 14px 40px;
+    height: 110px; padding: 10px 34px 40px;
     display: flex; align-items: center; gap: 8px;
     background: var(--bg);
     transition: transform .26s cubic-bezier(.4,0,.2,1);
   }
   .bottombar.hidden { transform: translateY(105%); }
   .addr {
-    flex: 1; min-width: 0; height: 50px;
-    background: var(--surface-2); border-radius: 25px;
+    flex: 1; min-width: 0; height: 60px;
+    background: var(--surface-2); border-radius: 30px;
     border: 1px solid var(--line);
     display: flex; align-items: center; gap: 8px;
-    padding: 0 16px;
+    padding: 0 18px;
   }
   .addr svg { flex: 0 0 auto; }
   .addr input {
@@ -226,6 +226,11 @@
     font-size: 14px; font-weight: 700; color: var(--text);
     font-variant-numeric: tabular-nums;
   }
+
+  /* bottom-bar icons scaled up to match the 60px address bar */
+  .bottombar .iconbtn { width: 52px; height: 52px; }
+  .bottombar .iconbtn svg { width: 27px; height: 27px; }
+  .bottombar .tabsbtn { width: 30px; height: 30px; font-size: 15px; }
 
   /* ---- Tabs page (slides up) ---- */
   .sheet {
@@ -302,8 +307,8 @@
 
   .menu {
     position: absolute; z-index: 40;
-    right: 12px; bottom: 74px;
-    width: 75%; max-width: 420px;
+    right: 12px; bottom: 84px;
+    width: 60%; max-width: 330px;
     background: #242424;          /* lighter so it floats above the base */
     border-radius: 20px;
     border: 1px solid #333333;
@@ -331,7 +336,7 @@
     background: #1c1c1c;
   }
   .menu .row button {
-    width: 52px; height: 52px; border-radius: 50%;
+    width: 52px; height: 52px; border-radius: 8px;
     background: #333333; border: none; color: var(--text);
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: transform .08s, background .12s;
