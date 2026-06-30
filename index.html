@@ -46,7 +46,7 @@
     display: flex; align-items: center; justify-content: center;
     background: rgba(38,38,38,.94);
     border: 1px solid #3a3a3a; border-left: none;
-    border-radius: 0 32px 32px 0;
+    border-radius: 4px 32px 32px 4px;
     color: #eaeaea;
     opacity: 0; pointer-events: none;
     z-index: 70;
@@ -56,13 +56,20 @@
   .backhint.right {
     left: auto; right: 0;
     border: 1px solid #3a3a3a; border-right: none;
-    border-radius: 32px 0 0 32px;
+    border-radius: 32px 4px 4px 32px;
   }
   .backhint .arrow { transition: transform .08s; }
   .backhint.right .arrow { transform: rotate(180deg); }
   .backhint.committed { background: rgba(72,72,72,.96); }
   .backhint.committed .arrow { transform: scale(1.18); }
   .backhint.right.committed .arrow { transform: rotate(180deg) scale(1.18); }
+  /* toggle (tab-view) variant: colored bubble with a letter */
+  .backhint .bh-letter { display: none; font-family: "Sora", sans-serif; font-weight: 700; font-size: 22px; color: #fff; }
+  .backhint.toggle { background: rgba(45,98,224,.96); border-color: #5d8bff; }
+  .backhint.toggle .arrow { display: none; }
+  .backhint.toggle .bh-letter { display: block; }
+  .backhint.toggle.committed { background: rgba(61,123,255,1); }
+  .backhint.toggle.committed .bh-letter { transform: scale(1.18); }
 
   .frame {
     position: relative;
@@ -473,6 +480,57 @@
   .menu .row button:disabled { opacity: .35; }
   .menu .row button.on { background: var(--accent); color: #161616; }
 
+  /* ---- Tabs LIST view (pops up from the tabs button, bottom-right) ---- */
+  .tablist {
+    position: absolute; z-index: 40;
+    right: 12px; bottom: 84px;
+    width: 64%; max-width: 360px;
+    background: #242424; border: 1px solid #333333; border-radius: 18px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    overflow: hidden;
+    transform-origin: bottom right;
+    transform: scale(.05); opacity: 0;
+    transition: transform .22s cubic-bezier(.34,1.2,.5,1), opacity .18s;
+    pointer-events: none;
+  }
+  .tablist.open { transform: scale(1); opacity: 1; pointer-events: auto; }
+  .tlwrap { position: relative; }
+  .tlbody {
+    max-height: 351px;            /* 6.5 rows tall → overflow is visible */
+    overflow-y: auto; overflow-x: hidden; touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tlbody::-webkit-scrollbar { display: none; }
+  .tlrow {
+    display: flex; align-items: center; gap: 12px;
+    height: 54px; padding: 0 10px 0 14px; cursor: pointer;
+  }
+  .tlrow:active { background: #2e2e2e; }
+  .tlrow .tlico {
+    flex: 0 0 auto; width: 34px; height: 34px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: var(--text);
+  }
+  .tlrow.active { background: #1c1c1c; }
+  .tlrow .tlname {
+    flex: 1; min-width: 0; font-size: 15px; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .tlrow .tlx {
+    flex: 0 0 auto; width: 40px; height: 40px; border: none; background: none;
+    color: var(--dim); font-size: 22px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-appearance: none; appearance: none;
+  }
+  /* fade gradients when the list overflows */
+  .tlfade {
+    position: absolute; left: 0; right: 0; height: 28px;
+    pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 2;
+  }
+  .tlfade.top { top: 0; background: linear-gradient(#242424, rgba(36,36,36,0)); }
+  .tlfade.bottom { bottom: 0; background: linear-gradient(rgba(36,36,36,0), #242424); }
+  .tlfade.show { opacity: 1; }
+
   /* ---- Sub panels (slide in from right) ---- */
   .panel {
     z-index: 50; background: var(--bg);
@@ -625,6 +683,15 @@
       </div>
     </div>
 
+    <!-- ================= TABS LIST VIEW (L) ================= -->
+    <div class="tablist" id="tablist">
+      <div class="tlwrap">
+        <div class="tlfade top" id="tlFadeTop"></div>
+        <div class="tlbody" id="tablistBody"></div>
+        <div class="tlfade bottom" id="tlFadeBottom"></div>
+      </div>
+    </div>
+
     <!-- ================= SUB PANELS ================= -->
     <!-- History -->
     <div class="screen panel" id="panel-history">
@@ -693,9 +760,10 @@
       </div>
     </div>
 
-    <!-- Android-style edge back-swipe affordance -->
+    <!-- Edge swipe affordance: back arrow, or colored letter when toggling tab view -->
     <div class="backhint" id="backhint">
       <svg class="arrow" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      <span class="bh-letter">L</span>
     </div>
   </div>
 
@@ -723,7 +791,18 @@
   }
 
   const state = {
-    tabs: [ makeTab('comet.design', 'light'), makeTab('comet.design', 'dark') ],
+    // 8 distinct pages open by default so the list view clearly overflows
+    tabs: [
+      makeTab('comet.design', 'light'),
+      makeTab('monkeytype.com', 'dark'),
+      makeTab('foss.org', 'dark'),
+      makeTab('heavypaint.app', 'dark'),
+      makeTab('archlinux.org', 'dark'),
+      makeTab('wikipedia.org', 'light'),
+      makeTab('github.com', 'dark'),
+      makeTab('news.ycombinator.com', 'light'),
+    ],
+    tabsView: 'window',     // 'window' (grid) or 'list'
     activeId: null,
     history: [],     // {title,url,kind}
     bookmarks: [],   // {title,url,kind}
@@ -945,7 +1024,20 @@
   }
 
   function renderTabCount(){
-    document.getElementById('tabCount').textContent = state.tabs.length;
+    const btn = document.getElementById('tabsBtn');
+    const n = state.tabs.length;
+    if(state.tabsView === 'list'){
+      // list-view icon (L) — three stacked rows
+      btn.innerHTML = '<span class="tabsbtn" id="tabCount" style="border:none">'
+        + '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="7" x2="19" y2="7"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="17" x2="19" y2="17"/></svg></span>';
+    } else {
+      // window-view icon (W) — bordered box with count
+      btn.innerHTML = '<span class="tabsbtn" id="tabCount">' + n + '</span>';
+    }
+  }
+  function toggleTabsView(){
+    state.tabsView = (state.tabsView === 'list') ? 'window' : 'list';
+    renderTabCount();
   }
 
   function renderTabGrid(){
@@ -1116,6 +1208,44 @@
   function closeSheet(){ sheet.classList.remove('open'); }
   function openMenu(){ scrim.classList.add('open'); menu.classList.add('open'); updateNavButtons(); }
   function closeMenu(){ scrim.classList.remove('open'); menu.classList.remove('open'); }
+
+  // ---- Tabs list view (L) — pops up from the tabs button ----
+  const tablist = document.getElementById('tablist');
+  const tablistBody = document.getElementById('tablistBody');
+  function openTabsList(){ renderTabList(); scrim.classList.add('open'); tablist.classList.add('open'); requestAnimationFrame(updateTlFades); }
+  function closeTabsList(){ scrim.classList.remove('open'); tablist.classList.remove('open'); }
+  function openTabsView(){ state.tabsView === 'list' ? openTabsList() : openSheet(); }
+  function updateTlFades(){
+    const top = document.getElementById('tlFadeTop'), bot = document.getElementById('tlFadeBottom');
+    const el = tablistBody;
+    top.classList.toggle('show', el.scrollTop > 2);
+    bot.classList.toggle('show', el.scrollTop + el.clientHeight < el.scrollHeight - 2);
+  }
+  function renderTabList(){
+    tablistBody.innerHTML = '';
+    state.tabs.forEach(t => {
+      const row = document.createElement('div');
+      row.className = 'tlrow' + (t.id === state.activeId ? ' active' : '');
+      row.innerHTML =
+        `<div class="tlico" style="background:${colorFor(t.title)}">${esc(initial(t))}</div>`+
+        `<div class="tlname">${esc(t.title)}</div>`+
+        `<button class="tlx" data-close-tab="${t.id}">×</button>`;
+      row.addEventListener('click', (e) => {
+        if(e.target.closest('[data-close-tab]')) return;
+        state.activeId = t.id; renderAll(); closeTabsList();
+      });
+      tablistBody.appendChild(row);
+    });
+    tablistBody.querySelectorAll('[data-close-tab]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeTab(btn.getAttribute('data-close-tab'));
+        if(state.tabs.length) { renderTabList(); requestAnimationFrame(updateTlFades); }
+        else closeTabsList();
+      });
+    });
+  }
+  tablistBody.addEventListener('scroll', updateTlFades, { passive: true });
   function openPanel(name){
     const p = document.getElementById('panel-'+name);
     if(name==='history') renderHistory();
@@ -1146,9 +1276,9 @@
   })();
 
   document.getElementById('plusBtn').addEventListener('click', newTab);
-  document.getElementById('tabsBtn').addEventListener('click', openSheet);
+  document.getElementById('tabsBtn').addEventListener('click', openTabsView);
   document.getElementById('menuBtn').addEventListener('click', openMenu);
-  scrim.addEventListener('click', closeMenu);
+  scrim.addEventListener('click', () => { closeMenu(); closeTabsList(); });
 
   // menu list items
   menu.querySelectorAll('.item').forEach(it => {
@@ -1169,6 +1299,7 @@
   function systemBack(){
     if(document.querySelector('.panel.open')){ closePanels(); return; }
     if(menu.classList.contains('open')){ closeMenu(); return; }
+    if(tablist.classList.contains('open')){ closeTabsList(); return; }
     if(sheet.classList.contains('open')){ closeSheet(); return; }
     goBack();
   }
@@ -1193,7 +1324,9 @@
       if(x <= EDGE) side = 'left';
       else if(x >= r.width - EDGE) side = 'right';
       if(!side) return;
-      st = { side, startX: x, startY: y, pid: e.pointerId, inward: 0, gesturing: false, pending: true };
+      // right edge, top half → open the tab LIST view; otherwise back
+      const mode = (side === 'right' && y < r.height / 2) ? 'list' : 'back';
+      st = { side, mode, startX: x, startY: y, pid: e.pointerId, inward: 0, gesturing: false, pending: true };
     }
 
     function move(e){
@@ -1208,7 +1341,8 @@
         if(inward > 5 && Math.abs(dx) > Math.abs(dy)){
           st.pending = false; st.gesturing = true;
           try { frame.setPointerCapture(st.pid); } catch(_){}
-          hint.className = 'backhint' + (st.side === 'right' ? ' right' : '');
+          hint.className = 'backhint' + (st.side === 'right' ? ' right' : '') + (st.mode === 'list' ? ' toggle' : '');
+          if(st.mode === 'list'){ const L = hint.querySelector('.bh-letter'); if(L) L.textContent = (state.tabsView === 'window') ? 'L' : 'W'; }
         } else return;
       }
 
@@ -1225,13 +1359,14 @@
     function up(){
       if(!st){ return; }
       const commit = st.gesturing && st.inward >= COMMIT;
+      const mode = st.mode;
       try { frame.releasePointerCapture(st.pid); } catch(_){}
       hint.style.opacity = '0';
       hint.style.left = ''; hint.style.right = '';
       hint.classList.remove('committed');
       const wasGesture = st.gesturing;
       st = null;
-      if(commit) systemBack();
+      if(commit){ if(mode === 'list') toggleTabsView(); else systemBack(); }
       return wasGesture;
     }
 
@@ -1407,7 +1542,7 @@
       if(moved){ e.stopPropagation(); e.preventDefault(); moved = false; }
     }, true);
   }
-  document.querySelectorAll('.page, .tabgrid, .body').forEach(dragScroll);
+  document.querySelectorAll('.page, .tabgrid, .body, .tlbody').forEach(dragScroll);
 
   // In-page hyperlinks (home top sites + article links) → navigate the active tab
   pageEl.addEventListener('click', (e) => {
