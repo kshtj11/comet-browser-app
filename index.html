@@ -1024,16 +1024,8 @@
   }
 
   function renderTabCount(){
-    const btn = document.getElementById('tabsBtn');
-    const n = state.tabs.length;
-    if(state.tabsView === 'list'){
-      // list-view icon (L) — three stacked rows
-      btn.innerHTML = '<span class="tabsbtn" id="tabCount" style="border:none">'
-        + '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="7" x2="19" y2="7"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="17" x2="19" y2="17"/></svg></span>';
-    } else {
-      // window-view icon (W) — bordered box with count
-      btn.innerHTML = '<span class="tabsbtn" id="tabCount">' + n + '</span>';
-    }
+    // same icon in both views — bordered box with the live tab count
+    document.getElementById('tabCount').textContent = state.tabs.length;
   }
   function toggleTabsView(){
     state.tabsView = (state.tabsView === 'list') ? 'window' : 'list';
