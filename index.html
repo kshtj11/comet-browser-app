@@ -111,7 +111,7 @@
     padding: 26px 22px 120px;          /* clearance so content clears the floating bar */
   }
   .page::-webkit-scrollbar { display: none; }
-  .page h1 { font-size: 30px; font-weight: 700; margin-bottom: 6px; }
+  .page h1 { font-size: calc(var(--page-font) * 1.85); font-weight: 700; margin-bottom: 6px; }
   .page .u { color: var(--dim); font-size: 14px; margin-bottom: 24px; word-break: break-all; }
   .page p { color: var(--dim); font-size: var(--page-font); line-height: 1.55; margin-bottom: 14px; }
   .result {
@@ -159,7 +159,7 @@
   }
   .site .brandbar .name { font-weight: 600; font-size: 15px; }
   .site .brandbar .nav { margin-left: auto; color: var(--dim); font-size: 13px; }
-  .site h1 { font-size: 27px; line-height: 1.2; margin-bottom: 10px; }
+  .site h1 { font-size: calc(var(--page-font) * 1.68); line-height: 1.2; margin-bottom: 10px; }
   .site .meta { color: var(--dim); font-size: 13px; margin-bottom: 18px; }
   .site .hero {
     height: 180px; border-radius: 14px; margin-bottom: 20px;
@@ -170,11 +170,11 @@
     content: ""; position: absolute; inset: 0;
     background: radial-gradient(circle at 70% 30%, rgba(255,255,255,.05), transparent 60%);
   }
-  .site h2 { font-size: 19px; margin: 22px 0 10px; }
+  .site h2 { font-size: calc(var(--page-font) * 1.19); margin: 22px 0 10px; }
   .site p { color: #b5b5b5; font-size: var(--page-font); line-height: 1.62; margin-bottom: 14px; }
   .site blockquote {
     border-left: 3px solid var(--surface-3); margin: 18px 0;
-    padding: 4px 0 4px 16px; color: var(--text); font-style: italic; font-size: 17px;
+    padding: 4px 0 4px 16px; color: var(--text); font-style: italic; font-size: calc(var(--page-font) * 1.06);
   }
   .site ul { margin: 0 0 16px 20px; }
   .site li { color: #b5b5b5; font-size: var(--page-font); line-height: 1.6; margin-bottom: 8px; }
@@ -382,7 +382,7 @@
   }
   .sheet .head h2 { font-size: 18px; }
   .tabgrid {
-    flex: 1; overflow-y: auto; touch-action: pan-y;
+    flex: 1; overflow-y: auto; touch-action: none;   /* JS handles scroll + pull-to-dismiss (touch & mouse) */
     -webkit-overflow-scrolling: touch;
     padding: 0 16px 24px;
     display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
@@ -588,14 +588,23 @@
   .optrow .nm { flex: 1; font-size: 16px; color: var(--text); }
   .optrow .ck { color: var(--accent); font-size: 16px; opacity: 0; }
   .optrow.sel .ck { opacity: 1; }
-  .seg {
-    display: flex; background: var(--surface); border-radius: 12px; padding: 4px; gap: 4px;
+  .sizeval { color: var(--text); font-variant-numeric: tabular-nums; }
+  .sizewrap { display: flex; align-items: center; gap: 14px; }
+  .sizewrap .sizeA { color: var(--dim); font-weight: 700; flex: 0 0 auto; }
+  .sizecol { flex: 1; }
+  .sizeslider {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 4px;
+    border-radius: 2px; background: var(--surface-3); outline: none; cursor: pointer;
   }
-  .seg button {
-    flex: 1; border: none; background: transparent; color: var(--text);
-    min-height: var(--tap); border-radius: 9px; cursor: pointer; font-size: 16px;
+  .sizeslider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 26px; height: 26px;
+    border-radius: 50%; background: var(--text); border: 3px solid var(--bg); cursor: pointer;
   }
-  .seg button.on { background: var(--surface-3); color: var(--text); }
+  .sizeslider::-moz-range-thumb {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--text); border: 3px solid var(--bg); cursor: pointer;
+  }
+  .sizeticks { display: flex; justify-content: space-between; padding: 0 11px; margin-top: 7px; }
+  .sizeticks i { width: 2px; height: 6px; background: var(--surface-3); border-radius: 1px; }
   .toggle {
     display: flex; align-items: center; justify-content: space-between;
     background: var(--surface); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
@@ -740,11 +749,14 @@
           </div>
 
           <div class="sechead" style="margin-top:24px">Accessibility</div>
-          <div class="lbl">Text size</div>
-          <div class="seg" id="segText">
-            <button data-size="small">Small</button>
-            <button data-size="default" class="on">Default</button>
-            <button data-size="large">Large</button>
+          <div class="lbl">Text size <span class="sizeval" id="sizeVal">16 pt</span></div>
+          <div class="sizewrap">
+            <span class="sizeA" style="font-size:14px">A</span>
+            <div class="sizecol">
+              <input type="range" class="sizeslider" id="sizeRange" min="12" max="20" step="1" value="16" aria-label="Text size">
+              <div class="sizeticks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+            <span class="sizeA" style="font-size:22px">A</span>
           </div>
           <div class="lbl">Display</div>
           <div class="toggle" id="tgHC"><span class="tl">High contrast</span><span class="sw"></span></div>
@@ -847,6 +859,21 @@
     let h = 0; for(let i=0;i<str.length;i++) h = (h*31 + str.charCodeAt(i)) % 360;
     const l = 16 + (h % 12);            // neutral gray, slight lightness variation
     return `hsl(0 0% ${l}%)`;
+  }
+  // colorful icons for the LIST view — bg with a contrasting letter; includes 2 pastels
+  const ICON_PALETTE = [
+    { bg:'#3d7bff', fg:'#ffffff' },   // blue
+    { bg:'#e0533d', fg:'#ffffff' },   // red
+    { bg:'#3aa564', fg:'#ffffff' },   // green
+    { bg:'#8a63d2', fg:'#ffffff' },   // purple
+    { bg:'#1fa3a3', fg:'#ffffff' },   // teal
+    { bg:'#e2b714', fg:'#1b1b1b' },   // amber
+    { bg:'#cdc6f2', fg:'#2c2752' },   // pastel lavender
+    { bg:'#f7caa9', fg:'#5b3a22' },   // pastel peach
+  ];
+  function iconColors(str){
+    let h = 0; for(let i=0;i<str.length;i++) h = (h*31 + str.charCodeAt(i)) >>> 0;
+    return ICON_PALETTE[h % ICON_PALETTE.length];
   }
   function initial(t){
     if(t.kind === 'home') return '·';
@@ -1227,8 +1254,9 @@
     state.tabs.forEach(t => {
       const row = document.createElement('div');
       row.className = 'tlrow' + (t.id === state.activeId ? ' active' : '');
+      const c = iconColors(t.title);
       row.innerHTML =
-        `<div class="tlico" style="background:${colorFor(t.title)}">${esc(initial(t))}</div>`+
+        `<div class="tlico" style="background:${c.bg};color:${c.fg}">${esc(initial(t))}</div>`+
         `<div class="tlname">${esc(t.title)}</div>`+
         `<button class="tlx" data-close-tab="${t.id}">×</button>`;
       row.addEventListener('click', (e) => {
@@ -1386,11 +1414,13 @@
     function openKb(input){ kbInput = input; frame.classList.add('kbd-open'); }
     function closeKb(){ frame.classList.remove('kbd-open'); kbInput = null; shiftOn = false; updateShift(); }
 
-    // open when any input gains focus, close when focus leaves all inputs
-    frame.addEventListener('focusin', (e) => { if(e.target.tagName === 'INPUT') openKb(e.target); });
+    // only text-entry inputs bring up the keyboard (not sliders, toggles, etc.)
+    const TYPING = ['text','search','url','email','tel','password','number'];
+    const isTyping = (el) => el && el.tagName === 'INPUT' && TYPING.includes(el.type || 'text');
+    frame.addEventListener('focusin', (e) => { if(isTyping(e.target)) openKb(e.target); });
     frame.addEventListener('focusout', (e) => {
-      if(e.target.tagName !== 'INPUT') return;
-      setTimeout(() => { if(!(document.activeElement && document.activeElement.tagName === 'INPUT')) closeKb(); }, 0);
+      if(!isTyping(e.target)) return;
+      setTimeout(() => { if(!isTyping(document.activeElement)) closeKb(); }, 0);
     });
 
     function insert(inp, t){
@@ -1438,14 +1468,12 @@
     state.searchEngine = row.getAttribute('data-engine');
   });
 
-  // accessibility
-  document.getElementById('segText').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-size]'); if(!b) return;
-    document.querySelectorAll('#segText button').forEach(x => x.classList.remove('on'));
-    b.classList.add('on');
-    const map = { small:'14px', default:'16px', large:'19px' };
-    frame.style.setProperty('--page-font', map[b.getAttribute('data-size')]);
-  });
+  // accessibility — text size slider (12–20pt, default 16, ±4; scales the page)
+  const sizeRange = document.getElementById('sizeRange');
+  const sizeVal = document.getElementById('sizeVal');
+  function applyTextSize(px){ frame.style.setProperty('--page-font', px + 'px'); sizeVal.textContent = px + ' pt'; }
+  sizeRange.addEventListener('input', () => applyTextSize(+sizeRange.value));
+  applyTextSize(+sizeRange.value);
   document.getElementById('tgHC').addEventListener('click', function(){ this.classList.toggle('on'); frame.classList.toggle('hc', this.classList.contains('on')); });
   document.getElementById('tgBig').addEventListener('click', function(){ this.classList.toggle('on'); frame.classList.toggle('big', this.classList.contains('on')); });
 
@@ -1473,31 +1501,37 @@
   grab.addEventListener('pointerup', endDrag);
   grab.addEventListener('pointercancel', endDrag);
 
-  // Pull down on the tab list while it's scrolled to the top → dismiss the sheet too
+  // Tab grid: JS-driven scroll + pull-to-dismiss (one path for both touch and mouse)
   (function(){
     const grid = document.getElementById('tabGrid');
-    let sy = 0, pulling = false, pdy = 0, pid = null;
-    grid.addEventListener('pointerdown', (e) => { sy = e.clientY; pulling = false; pdy = 0; pid = e.pointerId; });
+    let sy = 0, startScroll = 0, pid = null, mode = null, pdy = 0, moved = false;
+    grid.addEventListener('pointerdown', (e) => {
+      sy = e.clientY; startScroll = grid.scrollTop; pid = e.pointerId; mode = null; pdy = 0; moved = false;
+    });
     grid.addEventListener('pointermove', (e) => {
       if(pid === null) return;
-      const d = e.clientY - sy;
-      if(!pulling){
-        if(grid.scrollTop <= 0 && d > 6){ pulling = true; sheet.style.transition = 'none'; try { grid.setPointerCapture(pid); } catch(_){} }
-        else return;
+      const dy = e.clientY - sy;
+      if(mode === null){
+        if(Math.abs(dy) <= 4) return;
+        moved = true;
+        mode = (dy > 0 && grid.scrollTop <= 0) ? 'dismiss' : 'scroll';   // pull down at top → dismiss
+        try { grid.setPointerCapture(pid); } catch(_){}
+        if(mode === 'dismiss') sheet.style.transition = 'none';
       }
-      pdy = Math.max(0, d);
       e.preventDefault();
-      sheet.style.transform = 'translateY(' + pdy + 'px)';
+      if(mode === 'scroll'){ grid.scrollTop = startScroll - dy; }
+      else { pdy = Math.max(0, dy); sheet.style.transform = 'translateY(' + pdy + 'px)'; }
     });
     function end(){
       if(pid === null) return;
-      const was = pulling, d = pdy;
+      const m = mode, d = pdy;
       try { grid.releasePointerCapture(pid); } catch(_){}
-      pid = null; pulling = false; pdy = 0;
-      if(was){ sheet.style.transition = ''; sheet.style.transform = ''; if(d > 120) closeSheet(); }
+      pid = null; mode = null; pdy = 0;
+      if(m === 'dismiss'){ sheet.style.transition = ''; sheet.style.transform = ''; if(d > 120) closeSheet(); }
     }
     grid.addEventListener('pointerup', end);
     grid.addEventListener('pointercancel', end);
+    grid.addEventListener('click', (e) => { if(moved){ e.stopPropagation(); e.preventDefault(); } }, true);
   })();
 
   // ---------- Hide bottom bar on scroll-down, reveal on scroll-up ----------
@@ -1552,7 +1586,7 @@
       if(moved){ e.stopPropagation(); e.preventDefault(); moved = false; }
     }, true);
   }
-  document.querySelectorAll('.page, .tabgrid, .body, .tlbody').forEach(dragScroll);
+  document.querySelectorAll('.page, .body, .tlbody').forEach(dragScroll);
 
   // In-page hyperlinks (home top sites + article links) → navigate the active tab
   pageEl.addEventListener('click', (e) => {
