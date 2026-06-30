@@ -576,6 +576,18 @@
   /* Accessibility controls */
   .actrl { padding: 18px; }
   .actrl .lbl { font-size: 14px; color: var(--dim); margin: 18px 0 10px; }
+  .actrl .sechead { font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 12px; }
+  .optlist { background: var(--surface); border-radius: 12px; overflow: hidden; }
+  .optrow {
+    display: flex; align-items: center; gap: 12px;
+    min-height: 50px; padding: 0 16px; cursor: pointer;
+    border-top: 1px solid var(--bg);
+  }
+  .optrow:first-child { border-top: none; }
+  .optrow:active { background: var(--surface-2); }
+  .optrow .nm { flex: 1; font-size: 16px; color: var(--text); }
+  .optrow .ck { color: var(--accent); font-size: 16px; opacity: 0; }
+  .optrow.sel .ck { opacity: 1; }
   .seg {
     display: flex; background: var(--surface); border-radius: 12px; padding: 4px; gap: 4px;
   }
@@ -661,10 +673,6 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.3 1a7 7 0 0 0-1.7-1l-.3-2.6h-4l-.3 2.6a7 7 0 0 0-1.7 1l-2.3-1-2 3.4 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 1.7 1l.3 2.6h4l.3-2.6a7 7 0 0 0 1.7-1l2.3 1 2-3.4-2-1.5a7 7 0 0 0 .1-1z"/></svg>
         Settings
       </div>
-      <div class="item" data-act="accessibility">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="2"/><path d="M4 8h16"/><path d="M9 8l1 12"/><path d="M15 8l-1 12"/></svg>
-        Accessibility
-      </div>
 
       <!-- bottom circular icon row -->
       <div class="row">
@@ -715,22 +723,23 @@
       </div>
       <div class="body" id="downloadsBody"></div>
     </div>
-    <!-- Settings -->
+    <!-- Settings (now also holds Accessibility) -->
     <div class="screen panel" id="panel-settings">
       <div class="phead">
         <h2>Settings</h2>
       </div>
       <div class="body">
-        <div class="empty">Settings — placeholder</div>
-      </div>
-    </div>
-    <!-- Accessibility -->
-    <div class="screen panel" id="panel-accessibility">
-      <div class="phead">
-        <h2>Accessibility</h2>
-      </div>
-      <div class="body">
         <div class="actrl">
+          <div class="sechead">Default search engine</div>
+          <div class="optlist" id="engineList">
+            <div class="optrow sel" data-engine="DuckDuckGo"><span class="nm">DuckDuckGo</span><span class="ck">✓</span></div>
+            <div class="optrow" data-engine="Google"><span class="nm">Google</span><span class="ck">✓</span></div>
+            <div class="optrow" data-engine="Bing"><span class="nm">Bing</span><span class="ck">✓</span></div>
+            <div class="optrow" data-engine="Brave"><span class="nm">Brave Search</span><span class="ck">✓</span></div>
+            <div class="optrow" data-engine="Startpage"><span class="nm">Startpage</span><span class="ck">✓</span></div>
+          </div>
+
+          <div class="sechead" style="margin-top:24px">Accessibility</div>
           <div class="lbl">Text size</div>
           <div class="seg" id="segText">
             <button data-size="small">Small</button>
@@ -1419,6 +1428,15 @@
 
   // history actions
   document.getElementById('clearHistory').addEventListener('click', () => { state.history = []; renderHistory(); });
+
+  // default search engine (radio select; DuckDuckGo selected by default)
+  state.searchEngine = 'DuckDuckGo';
+  document.getElementById('engineList').addEventListener('click', (e) => {
+    const row = e.target.closest('[data-engine]'); if(!row) return;
+    document.querySelectorAll('#engineList .optrow').forEach(r => r.classList.remove('sel'));
+    row.classList.add('sel');
+    state.searchEngine = row.getAttribute('data-engine');
+  });
 
   // accessibility
   document.getElementById('segText').addEventListener('click', (e) => {
