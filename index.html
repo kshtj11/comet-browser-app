@@ -1784,7 +1784,7 @@
       const tr = 'transform ' + DUR + 'ms cubic-bezier(.4,0,.2,1)';
       pageEl.style.transition = tr; peek.style.transition = tr;
       addrInput.style.transition = tr; txtPeek.style.transition = tr;
-      const commit = st.target && Math.abs(st.dx || 0) > st.w * 0.42;  // needs ~40% more travel to trigger
+      const commit = st.target && Math.abs(st.dx || 0) > st.w * 0.34;  // commit past ~34% of the width
       function resetText(){ addrInput.style.transition = 'none'; txtPeek.style.transition = 'none'; addrInput.style.transform = ''; txtPeek.style.transform = ''; txtPeek.style.visibility = 'hidden'; }
       if(commit){
         const dir = st.next ? -1 : 1;
