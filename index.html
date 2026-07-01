@@ -329,6 +329,7 @@
   .kbd .key.enter { width: 70px; background: #636363; font-family: 'Inter', sans-serif; font-size: 22px; }
   .kbd.shift-on .key.shift { background: #8a8a8a; color: #fff; }
   .addr {
+    position: relative; overflow: hidden;
     flex: 1; min-width: 0; height: 60px;
     background: var(--surface-2); border-radius: 30px;
     border: 1px solid var(--line);
@@ -336,6 +337,14 @@
     padding: 0 18px;
   }
   .addr svg { flex: 0 0 auto; }
+  .addr input { will-change: transform; }
+  /* peek layer showing the adjacent tab's URL while swiping the bar */
+  .addrpeek {
+    position: absolute; top: 0; bottom: 0;
+    display: flex; align-items: center; white-space: nowrap; overflow: hidden;
+    color: var(--text); font-size: 16px; pointer-events: none;
+    visibility: hidden; will-change: transform;
+  }
   .addr input {
     flex: 1; min-width: 0; background: transparent; border: none; outline: none;
     color: var(--text); font-size: 16px;
@@ -791,6 +800,7 @@
             <rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>
           </svg>
           <input id="addrInput" type="text" placeholder="Search or enter address" autocomplete="off" spellcheck="false" enterkeyhint="go">
+          <span class="addrpeek" id="addrPeek"></span>
           <button type="button" class="addr-clear" id="addrClear" aria-label="Clear text">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
           </button>
@@ -1715,9 +1725,11 @@
   (function(){
     const bar = document.getElementById('addrForm');
     const peek = document.getElementById('pagePeek');
+    const txtPeek = document.getElementById('addrPeek');
     const DUR = 220;
     let s = null;
     function siblings(){ const a = active(); return state.tabs.filter(t => !!t.priv === !!a.priv); }
+    function urlText(t){ return t.url || 'Search or enter address'; }
 
     bar.addEventListener('pointerdown', (e) => {
       s = { x0: e.clientX, y0: e.clientY, pid: e.pointerId, mode: null, w: frame.getBoundingClientRect().width, armed: null };
@@ -1733,26 +1745,34 @@
         const sib = siblings(); s.sib = sib; s.i = sib.indexOf(active());
         try { bar.setPointerCapture(s.pid); } catch(_){}
         if(document.activeElement && document.activeElement.blur) document.activeElement.blur();  // don't type mid-swipe
+        // align the text-peek with the real input, and remember the pill width
+        const br = bar.getBoundingClientRect(), ir = addrInput.getBoundingClientRect();
+        s.barW = br.width; txtPeek.style.left = (ir.left - br.left) + 'px'; txtPeek.style.width = ir.width + 'px';
         pageEl.style.transition = 'none'; peek.style.transition = 'none';
+        addrInput.style.transition = 'none'; txtPeek.style.transition = 'none';
       }
       if(s.mode !== 'swipe') return;
       e.preventDefault();
       const next = dx < 0;                                     // swipe left → next tab
       const target = next ? s.sib[s.i + 1] : s.sib[s.i - 1];
       if(!target){                                            // no tab that way → rubber-band
-        peek.style.visibility = 'hidden';
+        peek.style.visibility = 'hidden'; txtPeek.style.visibility = 'hidden';
         pageEl.style.transform = 'translateX(' + (dx * 0.25) + 'px)';
+        addrInput.style.transform = 'translateX(' + (dx * 0.25) + 'px)';
         s.target = null; return;
       }
       if(s.armed !== target.id){
         const c = tabContent(target);
         peek.className = c.cls + ' pagepeek';
         peek.innerHTML = c.html;
+        txtPeek.textContent = urlText(target);
         s.armed = target.id;
       }
-      peek.style.visibility = 'visible';
+      peek.style.visibility = 'visible'; txtPeek.style.visibility = 'visible';
       peek.style.transform = 'translateX(' + ((next ? s.w : -s.w) + dx) + 'px)';
       pageEl.style.transform = 'translateX(' + dx + 'px)';
+      addrInput.style.transform = 'translateX(' + dx + 'px)';
+      txtPeek.style.transform = 'translateX(' + ((next ? s.barW : -s.barW) + dx) + 'px)';
       s.dx = dx; s.target = target; s.next = next;
     });
 
@@ -1761,25 +1781,32 @@
       const st = s; s = null;
       try { bar.releasePointerCapture(st.pid); } catch(_){}
       if(st.mode !== 'swipe') return;
-      pageEl.style.transition = 'transform ' + DUR + 'ms cubic-bezier(.4,0,.2,1)';
-      peek.style.transition = 'transform ' + DUR + 'ms cubic-bezier(.4,0,.2,1)';
-      const commit = st.target && Math.abs(st.dx || 0) > st.w * 0.3;
+      const tr = 'transform ' + DUR + 'ms cubic-bezier(.4,0,.2,1)';
+      pageEl.style.transition = tr; peek.style.transition = tr;
+      addrInput.style.transition = tr; txtPeek.style.transition = tr;
+      const commit = st.target && Math.abs(st.dx || 0) > st.w * 0.42;  // needs ~40% more travel to trigger
+      function resetText(){ addrInput.style.transition = 'none'; txtPeek.style.transition = 'none'; addrInput.style.transform = ''; txtPeek.style.transform = ''; txtPeek.style.visibility = 'hidden'; }
       if(commit){
         const dir = st.next ? -1 : 1;
         pageEl.style.transform = 'translateX(' + (dir * st.w) + 'px)';
         peek.style.transform = 'translateX(0px)';
+        addrInput.style.transform = 'translateX(' + (dir * st.barW) + 'px)';
+        txtPeek.style.transform = 'translateX(0px)';
         setTimeout(() => {
           state.activeId = st.target.id;
           pageEl.style.transition = 'none'; peek.style.transition = 'none';
           pageEl.style.transform = ''; peek.style.transform = ''; peek.style.visibility = 'hidden';
+          resetText();
           renderChrome(); paintPage();
         }, DUR);
       } else {
         pageEl.style.transform = 'translateX(0px)';
-        if(st.target) peek.style.transform = 'translateX(' + (st.next ? st.w : -st.w) + 'px)';
+        addrInput.style.transform = 'translateX(0px)';
+        if(st.target){ peek.style.transform = 'translateX(' + (st.next ? st.w : -st.w) + 'px)'; txtPeek.style.transform = 'translateX(' + (st.next ? st.barW : -st.barW) + 'px)'; }
         setTimeout(() => {
           peek.style.visibility = 'hidden';
           pageEl.style.transition = 'none'; pageEl.style.transform = '';
+          resetText();
           requestAnimationFrame(() => { pageEl.style.transition = ''; });
         }, DUR);
       }
