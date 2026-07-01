@@ -111,6 +111,8 @@
     padding: 26px 22px 120px;          /* clearance so content clears the floating bar */
   }
   .page::-webkit-scrollbar { display: none; }
+  /* off-screen preview layer for the swipe-to-change-tabs gesture */
+  .pagepeek { overflow: hidden; pointer-events: none; visibility: hidden; will-change: transform; }
   .page h1 { font-size: calc(var(--page-font) * 1.85); font-weight: 700; margin-bottom: 6px; }
   .page .u { color: var(--dim); font-size: 14px; margin-bottom: 24px; word-break: break-all; }
   .page p { color: var(--dim); font-size: var(--page-font); line-height: 1.55; margin-bottom: 14px; }
@@ -376,35 +378,38 @@
   .sheet.open { transform: translateY(0); }
   .sheet .grab { padding: 10px 0 4px; display: flex; justify-content: center; touch-action: none; }
   .sheet .grab i { width: 38px; height: 5px; border-radius: 3px; background: var(--surface-3); }
-  .sheet .head {
-    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
-    padding: 8px 16px 22px;
+  /* controls bar pinned to the bottom of the tabs sheet */
+  .sheet .tabsbar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--line); background: #181818;
   }
-  .sheet .head h2 { font-size: 18px; }
-  /* segmented normal / private toggle (top-middle) */
+  /* segmented toggles */
   .tabseg {
-    justify-self: center; display: flex; gap: 6px;
+    display: flex; gap: 6px;
     background: var(--surface); border-radius: 16px; padding: 6px;
   }
   .tabseg .seg {
     -webkit-appearance: none; appearance: none; border: none;
-    width: 56px; height: 44px; border-radius: 12px;
+    width: 52px; height: 44px; border-radius: 12px;
     background: transparent; color: var(--dim); cursor: pointer;
     display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700;
     transition: background .12s, color .12s;
   }
   .tabseg .seg svg { width: 24px; height: 24px; }
   .tabseg .seg.on { background: var(--surface-3); color: var(--text); }
-  /* close all tabs (top-right) */
-  .sheet .head .closeall {
-    justify-self: end; -webkit-appearance: none; appearance: none; border: none;
-    height: 44px; padding: 0 16px; border-radius: 13px;
+  .colseg .seg { width: 44px; }
+  /* close all — chip pushed to the right, same pill style */
+  .closeall-chip {
+    margin-left: auto; -webkit-appearance: none; appearance: none; border: none;
+    height: 44px; padding: 0 18px; border-radius: 16px;
     background: var(--surface); color: var(--text); cursor: pointer;
-    font-size: 14px; font-weight: 600;
+    font-size: 15px; font-weight: 600;
     display: flex; align-items: center; justify-content: center;
     transition: background .12s, transform .08s;
   }
-  .sheet .head .closeall:active { transform: scale(.94); background: var(--surface-2); }
+  .closeall-chip:active { transform: scale(.94); background: var(--surface-2); }
 
   /* undo snackbar (bottom half) */
   .snack {
@@ -430,12 +435,17 @@
   .tabgrid {
     flex: 1; overflow-y: auto; touch-action: none;   /* JS handles scroll + pull-to-dismiss (touch & mouse) */
     -webkit-overflow-scrolling: touch;
-    padding: 0 16px 24px;
+    padding: 8px 16px 20px;
     display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
     grid-auto-rows: max-content;   /* don't stretch/shrink rows to fit */
     align-content: start;
   }
   .tabgrid::-webkit-scrollbar { display: none; }
+  /* 3-up grid option (shorter previews to keep the card ratio) */
+  .tabgrid.cols3 { grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .tabgrid.cols3 .prev { height: 184px; font-size: 26px; }
+  .tabgrid.cols3 .meta span { font-size: 12px; }
+  .tabgrid.cols3 .newtab { height: 224px; }
   .tabcard {
     background: var(--surface); border-radius: 16px;
     overflow: hidden; cursor: pointer; position: relative;
@@ -667,13 +677,13 @@
   .empty { color: var(--dim); text-align: center; padding: 50px 20px; font-size: 14px; }
 
   /* Accessibility controls */
-  .actrl { padding: 18px; }
-  .actrl .lbl { font-size: 14px; color: var(--dim); margin: 18px 0 10px; }
-  .actrl .sechead { font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 12px; }
+  .actrl { padding: 22px; }
+  .actrl .lbl { font-size: 16px; color: var(--dim); margin: 24px 0 12px; }
+  .actrl .sechead { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 14px; }
   .optlist { background: var(--surface); border-radius: 12px; overflow: hidden; }
   .optrow {
     display: flex; align-items: center; gap: 12px;
-    min-height: 50px; padding: 0 16px; cursor: pointer;
+    min-height: 56px; padding: 0 18px; cursor: pointer;
     border-top: 1px solid var(--bg);
   }
   .optrow:first-child { border-top: none; }
@@ -700,10 +710,10 @@
   .sizeticks i { width: 2px; height: 6px; background: var(--surface-3); border-radius: 1px; }
   .toggle {
     display: flex; align-items: center; justify-content: space-between;
-    background: var(--surface); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+    background: var(--surface); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px;
     cursor: pointer;
   }
-  .toggle .tl { font-size: 14px; }
+  .toggle .tl { font-size: 16px; }
   .sw { width: 48px; height: 28px; border-radius: 15px; background: var(--surface-3); position: relative; transition: background .15s; }
   .sw::after { content:""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: left .15s; }
   .toggle.on .sw { background: #5e5e5e; }
@@ -712,7 +722,7 @@
   /* live text-size preview (scales with --page-font) */
   .sizepreview {
     background: var(--surface); border-radius: 12px;
-    padding: 16px; margin-top: 10px; overflow: hidden;
+    padding: 18px; margin-top: 12px; overflow: hidden;
   }
   .sizepreview .sp-title {
     font-size: calc(var(--page-font) * 1.38); font-weight: 700;
@@ -724,11 +734,11 @@
   .setrow {
     display: flex; align-items: center; gap: 10px;
     background: var(--surface); border-radius: 12px;
-    padding: 0 16px; min-height: 52px; cursor: pointer;
+    padding: 0 18px; min-height: 60px; cursor: pointer;
   }
   .setrow:active { background: var(--surface-2); }
   .setrow .setlabel { flex: 1; font-size: 16px; color: var(--text); }
-  .setrow .setval { font-size: 15px; color: var(--dim); }
+  .setrow .setval { font-size: 16px; color: var(--dim); }
   .setrow .chev { color: var(--dim); flex: 0 0 auto; transition: transform .18s; }
   .setrow.open .chev { transform: rotate(90deg); }
   .enginepicker {
@@ -739,31 +749,31 @@
     -webkit-appearance: none; appearance: none;
     width: 100%; box-sizing: border-box; margin: 10px 0;
     background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
-    color: var(--text); font-size: 15px; padding: 12px 14px; outline: none;
+    color: var(--text); font-size: 16px; padding: 14px 16px; outline: none;
   }
   .enginein:focus { border-color: #4a4a4a; }
 
   /* permissions — recent sensitive-feature activity */
-  .permnote { font-size: 13px; color: var(--dim); margin: -4px 0 12px; line-height: 1.45; }
+  .permnote { font-size: 16px; color: var(--dim); margin: -4px 0 14px; line-height: 1.45; }
   .permlist { background: var(--surface); border-radius: 12px; overflow: hidden; }
   .permrow {
     display: flex; align-items: center; gap: 12px;
-    padding: 11px 14px; border-top: 1px solid var(--bg);
+    padding: 14px 16px; border-top: 1px solid var(--bg);
   }
   .permrow:first-child { border-top: none; }
   .permrow .pico {
-    flex: 0 0 auto; width: 34px; height: 34px; border-radius: 9px;
+    flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 14px; font-weight: 700;
+    font-size: 15px; font-weight: 700;
   }
   .permrow .pmid { flex: 1; min-width: 0; }
   .permrow .pname {
-    font-size: 15px; color: var(--text);
+    font-size: 16px; color: var(--text);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .permrow .pdesc { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--dim); margin-top: 2px; }
+  .permrow .pdesc { display: flex; align-items: center; gap: 6px; font-size: 15px; color: var(--dim); margin-top: 3px; }
   .permrow .pdesc svg { flex: 0 0 auto; }
-  .permrow .ptime { flex: 0 0 auto; font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; }
+  .permrow .ptime { flex: 0 0 auto; font-size: 14px; color: var(--dim); font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body>
@@ -773,6 +783,7 @@
     <div class="screen" id="webview">
       <div class="loadbar" id="loadbar"></div>
       <div class="page" id="page"></div>
+      <div class="page pagepeek" id="pagePeek"></div>
 
       <div class="bottombar">
         <form class="addr" id="addrForm">
@@ -802,8 +813,8 @@
     <!-- ================= TABS PAGE ================= -->
     <div class="screen sheet" id="tabsSheet">
       <div class="grab" id="tabsGrab"><i></i></div>
-      <div class="head">
-        <h2>Tabs</h2>
+      <div class="tabgrid" id="tabGrid"></div>
+      <div class="tabsbar">
         <div class="tabseg" id="tabSeg">
           <button class="seg on" data-priv="0" title="Tabs" aria-label="Tabs">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="4.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="4.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="14.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="14.5" width="7" height="5" rx="1.5"/></svg>
@@ -812,9 +823,12 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l2-6h14l2 6"/><circle cx="7" cy="15" r="2.5"/><circle cx="17" cy="15" r="2.5"/><path d="M9.4 14.5h5.2"/></svg>
           </button>
         </div>
-        <button class="closeall" id="closeAll" title="Close all tabs" aria-label="Close all tabs">Close all</button>
+        <div class="tabseg colseg" id="colSeg">
+          <button class="seg on" data-cols="2" title="2 columns" aria-label="2 columns">2</button>
+          <button class="seg" data-cols="3" title="3 columns" aria-label="3 columns">3</button>
+        </div>
+        <button class="closeall-chip" id="closeAll" title="Close all tabs" aria-label="Close all tabs">Close all</button>
       </div>
-      <div class="tabgrid" id="tabGrid"></div>
     </div>
 
     <!-- ================= SETTINGS MENU ================= -->
@@ -845,9 +859,9 @@
 
           <div class="msep"></div>
 
-          <div class="item" data-act="print">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 17h10v4H7z"/></svg>
-            Print page
+          <div class="item" data-act="devtools">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 8 4 12 8 16"/><polyline points="16 8 20 12 16 16"/><line x1="13.5" y1="6" x2="10.5" y2="18"/></svg>
+            Remote developer tools
           </div>
           <div class="item" data-act="desktop">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
@@ -878,7 +892,7 @@
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 18.8 6.2 21l1.1-6.5L2.6 9.8l6.5-.9z"/></svg>
         </button>
         <button id="navFind" title="Find in page" aria-label="Find in page">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="10.5" cy="11.5" r="3"/><path d="M13 14l2.6 2.6"/></svg>
         </button>
       </div>
     </div>
@@ -1037,6 +1051,7 @@
     ],
     tabsView: 'window',     // 'window' (grid) or 'list'
     tabPriv: false,         // grid is showing the private set?
+    tabCols: 2,             // grid columns in window view (2 or 3)
     activeId: null,
     history: [],     // {title,url,kind}
     bookmarks: [],   // {title,url,kind}
@@ -1116,27 +1131,28 @@
     return 'article';
   }
 
-  // paint the active tab's content immediately
-  function paintPage(){
-    const t = active();
-    addrInput.value = t.url;
-    let cls = 'page';
-    if(t.kind === 'home'){
-      pageEl.className = cls; pageEl.innerHTML = homePage(); wireHome();
-    } else if(t.kind === 'query'){
-      pageEl.className = cls;
+  // build the HTML + page class for any tab (shared by the live page and the swipe preview)
+  function tabContent(t){
+    if(t.kind === 'home') return { cls: 'page', html: homePage() };
+    if(t.kind === 'query'){
       const q = t.title; let rows = '';
       for(let i=1;i<=5;i++){
         rows += `<div class="result"><div class="rt">${esc(q)} — result ${i}</div><div class="ru">example${i}.com/${encodeURIComponent(q)}</div></div>`;
       }
-      pageEl.innerHTML = `<h1>Results for “${esc(q)}”</h1><div class="u">${esc(t.url)}</div>${rows}`;
-    } else {
-      const tpl = pickTemplate(t.title);
-      const lightOk = t.theme === 'light' && !frame.classList.contains('forcedark');
-      cls += tpl === 'funky' ? ' funky' : (lightOk ? ' light' : '');
-      pageEl.className = cls;
-      pageEl.innerHTML = renderTemplate(tpl, t.title);
+      return { cls: 'page', html: `<h1>Results for “${esc(q)}”</h1><div class="u">${esc(t.url)}</div>${rows}` };
     }
+    const tpl = pickTemplate(t.title);
+    const lightOk = t.theme === 'light' && !frame.classList.contains('forcedark');
+    const cls = 'page' + (tpl === 'funky' ? ' funky' : (lightOk ? ' light' : ''));
+    return { cls, html: renderTemplate(tpl, t.title) };
+  }
+  // paint the active tab's content immediately
+  function paintPage(){
+    const t = active();
+    addrInput.value = t.url;
+    const c = tabContent(t);
+    pageEl.className = c.cls; pageEl.innerHTML = c.html;
+    if(t.kind === 'home') wireHome();
     pageEl.scrollTop = 0; lastScroll = 0; showBar();
   }
   function renderPage(){ paintPage(); }
@@ -1286,8 +1302,10 @@
   function renderTabGrid(){
     const grid = document.getElementById('tabGrid');
     grid.innerHTML = '';
-    // reflect which set the segmented control is showing
+    grid.classList.toggle('cols3', state.tabCols === 3);
+    // reflect which set / column count the segmented controls are showing
     document.querySelectorAll('#tabSeg .seg').forEach(s => s.classList.toggle('on', (s.getAttribute('data-priv') === '1') === state.tabPriv));
+    document.querySelectorAll('#colSeg .seg').forEach(s => s.classList.toggle('on', +s.getAttribute('data-cols') === state.tabCols));
     const list = state.tabs.filter(t => !!t.priv === state.tabPriv);
     list.forEach(t => {
       const card = document.createElement('div');
@@ -1304,12 +1322,6 @@
       });
       grid.appendChild(card);
     });
-    if(!list.length){
-      const e = document.createElement('div');
-      e.className = 'empty'; e.style.gridColumn = '1 / -1';
-      e.textContent = state.tabPriv ? 'No private tabs open' : 'No tabs open';
-      grid.appendChild(e);
-    }
     const add = document.createElement('button');
     add.className = 'newtab';
     add.textContent = '+';
@@ -1559,6 +1571,12 @@
     state.tabPriv = b.getAttribute('data-priv') === '1';
     renderTabGrid();
   });
+  // grid column count (2 / 3)
+  document.getElementById('colSeg').addEventListener('click', (e) => {
+    const b = e.target.closest('.seg'); if(!b) return;
+    state.tabCols = +b.getAttribute('data-cols');
+    renderTabGrid();
+  });
   // close all tabs in the current (normal / private) set, with an Undo snackbar
   const snack = document.getElementById('snack');
   let snackTimer = null, undoFn = null;
@@ -1595,7 +1613,7 @@
       if(act === 'newtab'){ closeMenu(); newTab(false); return; }
       if(act === 'newprivate'){ closeMenu(); newTab(true); return; }
       if(act === 'desktop'){ it.classList.toggle('on'); frame.classList.toggle('desktopsite', it.classList.contains('on')); return; }
-      if(act === 'print'){ closeMenu(); return; }    // no-op in the prototype
+      if(act === 'devtools'){ closeMenu(); return; }    // no-op in the prototype
       closeMenu();
       openPanel(act);
     });
@@ -1629,14 +1647,16 @@
 
     function down(e){
       if(st) return;
+      if(e.target.closest && e.target.closest('#addrForm')) return;  // address bar owns horizontal swipes
       const r = frameRect();
       const x = e.clientX - r.left, y = e.clientY - r.top;
       let side = null;
       if(x <= EDGE) side = 'left';
       else if(x >= r.width - EDGE) side = 'right';
       if(!side) return;
-      // right edge, top half → open the tab LIST view; otherwise back
-      const mode = (side === 'right' && y < r.height / 2) ? 'list' : 'back';
+      // left edge → back. right edge: top half → tab LIST view, bottom half → forward.
+      let mode = 'back';
+      if(side === 'right') mode = (y < r.height / 2) ? 'list' : 'forward';
       st = { side, mode, startX: x, startY: y, pid: e.pointerId, inward: 0, gesturing: false, pending: true };
     }
 
@@ -1677,7 +1697,11 @@
       hint.classList.remove('committed');
       const wasGesture = st.gesturing;
       st = null;
-      if(commit){ if(mode === 'list') toggleTabsView(); else systemBack(); }
+      if(commit){
+        if(mode === 'list') toggleTabsView();
+        else if(mode === 'forward') goFwd();
+        else systemBack();
+      }
       return wasGesture;
     }
 
@@ -1685,6 +1709,83 @@
     frame.addEventListener('pointermove', move, true);
     frame.addEventListener('pointerup', up, true);
     frame.addEventListener('pointercancel', up, true);
+  })();
+
+  // ---------- Swipe the ADDRESS BAR left/right to change tabs (animated preview) ----------
+  (function(){
+    const bar = document.getElementById('addrForm');
+    const peek = document.getElementById('pagePeek');
+    const DUR = 220;
+    let s = null;
+    function siblings(){ const a = active(); return state.tabs.filter(t => !!t.priv === !!a.priv); }
+
+    bar.addEventListener('pointerdown', (e) => {
+      s = { x0: e.clientX, y0: e.clientY, pid: e.pointerId, mode: null, w: frame.getBoundingClientRect().width, armed: null };
+    });
+
+    bar.addEventListener('pointermove', (e) => {
+      if(!s) return;
+      const dx = e.clientX - s.x0, dy = e.clientY - s.y0;
+      if(s.mode === null){
+        if(Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+        if(Math.abs(dx) <= Math.abs(dy)){ s = null; return; }  // not horizontal → let it be a tap
+        s.mode = 'swipe';
+        const sib = siblings(); s.sib = sib; s.i = sib.indexOf(active());
+        try { bar.setPointerCapture(s.pid); } catch(_){}
+        if(document.activeElement && document.activeElement.blur) document.activeElement.blur();  // don't type mid-swipe
+        pageEl.style.transition = 'none'; peek.style.transition = 'none';
+      }
+      if(s.mode !== 'swipe') return;
+      e.preventDefault();
+      const next = dx < 0;                                     // swipe left → next tab
+      const target = next ? s.sib[s.i + 1] : s.sib[s.i - 1];
+      if(!target){                                            // no tab that way → rubber-band
+        peek.style.visibility = 'hidden';
+        pageEl.style.transform = 'translateX(' + (dx * 0.25) + 'px)';
+        s.target = null; return;
+      }
+      if(s.armed !== target.id){
+        const c = tabContent(target);
+        peek.className = c.cls + ' pagepeek';
+        peek.innerHTML = c.html;
+        s.armed = target.id;
+      }
+      peek.style.visibility = 'visible';
+      peek.style.transform = 'translateX(' + ((next ? s.w : -s.w) + dx) + 'px)';
+      pageEl.style.transform = 'translateX(' + dx + 'px)';
+      s.dx = dx; s.target = target; s.next = next;
+    });
+
+    function finish(){
+      if(!s){ return; }
+      const st = s; s = null;
+      try { bar.releasePointerCapture(st.pid); } catch(_){}
+      if(st.mode !== 'swipe') return;
+      pageEl.style.transition = 'transform ' + DUR + 'ms cubic-bezier(.4,0,.2,1)';
+      peek.style.transition = 'transform ' + DUR + 'ms cubic-bezier(.4,0,.2,1)';
+      const commit = st.target && Math.abs(st.dx || 0) > st.w * 0.3;
+      if(commit){
+        const dir = st.next ? -1 : 1;
+        pageEl.style.transform = 'translateX(' + (dir * st.w) + 'px)';
+        peek.style.transform = 'translateX(0px)';
+        setTimeout(() => {
+          state.activeId = st.target.id;
+          pageEl.style.transition = 'none'; peek.style.transition = 'none';
+          pageEl.style.transform = ''; peek.style.transform = ''; peek.style.visibility = 'hidden';
+          renderChrome(); paintPage();
+        }, DUR);
+      } else {
+        pageEl.style.transform = 'translateX(0px)';
+        if(st.target) peek.style.transform = 'translateX(' + (st.next ? st.w : -st.w) + 'px)';
+        setTimeout(() => {
+          peek.style.visibility = 'hidden';
+          pageEl.style.transition = 'none'; pageEl.style.transform = '';
+          requestAnimationFrame(() => { pageEl.style.transition = ''; });
+        }, DUR);
+      }
+    }
+    bar.addEventListener('pointerup', finish);
+    bar.addEventListener('pointercancel', finish);
   })();
 
   // ---------- On-screen keyboard ----------
