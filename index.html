@@ -338,16 +338,10 @@
   }
   .addr svg { flex: 0 0 auto; }
   .addr input { will-change: transform; }
-  /* the whole address-bar chip slides during a tab-change swipe */
-  .addr.swiping { will-change: transform; z-index: 3; }
-  /* full-chip clone that slides in showing the adjacent tab's URL */
-  .addrchip-peek {
-    position: absolute; z-index: 3;
+  /* clone of the whole bottom bar that slides in while swiping to change tabs */
+  .bottombar.barpeek {
     visibility: hidden; pointer-events: none; will-change: transform;
-  }
-  .addrchip-peek .chiptext {
-    flex: 1; min-width: 0; font-size: 16px; color: var(--text);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: none;
   }
   .addr input {
     flex: 1; min-width: 0; background: transparent; border: none; outline: none;
@@ -893,7 +887,7 @@
       <div class="page" id="page"></div>
       <div class="page pagepeek" id="pagePeek"></div>
 
-      <div class="bottombar">
+      <div class="bottombar" id="bottombar">
         <form class="addr" id="addrForm">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--dim)">
             <rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>
@@ -903,14 +897,6 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
           </button>
         </form>
-
-        <!-- full address-bar chip clone that slides in while swiping to change tabs -->
-        <div class="addr addrchip-peek" id="addrChipPeek" aria-hidden="true">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--dim)">
-            <rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>
-          </svg>
-          <span class="chiptext" id="addrChipPeekText"></span>
-        </div>
 
         <button class="iconbtn" id="plusBtn" title="New tab" aria-label="New tab">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -1917,18 +1903,28 @@
   })();
 
   // ---------- Swipe the ADDRESS BAR left/right to change tabs (animated preview) ----------
-  // The whole address-bar chip slides with the page; a clone chip carrying the
-  // adjacent tab's URL slides in from the side, like a carousel.
+  // The whole bottom bar slides with the page; a clone bar carrying the adjacent
+  // tab's URL slides in from the side, like a carousel. Only fires when the drag
+  // is within 40° of horizontal, so a diagonal drag won't accidentally trigger it.
   (function(){
-    const bar = document.getElementById('addrForm');
+    const bar = document.getElementById('addrForm');            // the drag surface
+    const bottombar = document.getElementById('bottombar');     // what actually slides
     const peek = document.getElementById('pagePeek');
-    const chip = document.getElementById('addrChipPeek');
-    const chipText = document.getElementById('addrChipPeekText');
     const DUR = 220;
-    const GAP = 16;                                            // breathing room between the two chips
+    const TAN40 = Math.tan(40 * Math.PI / 180);                 // ~0.839: max dy/dx to count as horizontal
+    // clone the whole bar once; it slides in showing the adjacent tab's URL
+    const barPeek = bottombar.cloneNode(true);
+    barPeek.id = 'bottombarPeek';
+    barPeek.classList.add('barpeek');
+    barPeek.setAttribute('aria-hidden', 'true');
+    barPeek.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+    const peekInput = barPeek.querySelector('.addr input');
+    peekInput.readOnly = true;
+    bottombar.parentNode.appendChild(barPeek);
+
     let s = null;
     function siblings(){ const a = active(); return state.tabs.filter(t => !!t.priv === !!a.priv); }
-    function urlText(t){ return t.url || 'Search or enter address'; }
+    function urlText(t){ return t.url || ''; }
 
     bar.addEventListener('pointerdown', (e) => {
       s = { x0: e.clientX, y0: e.clientY, pid: e.pointerId, mode: null, w: frame.getBoundingClientRect().width, armed: null };
@@ -1939,41 +1935,37 @@
       const dx = e.clientX - s.x0, dy = e.clientY - s.y0;
       if(s.mode === null){
         if(Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
-        if(Math.abs(dx) <= Math.abs(dy)){ s = null; return; }  // not horizontal → let it be a tap
+        if(Math.abs(dy) > Math.abs(dx) * TAN40){ s = null; return; }  // steeper than 40° → not a tab swipe
         s.mode = 'swipe';
         const sib = siblings(); s.sib = sib; s.i = sib.indexOf(active());
         try { bar.setPointerCapture(s.pid); } catch(_){}
         if(document.activeElement && document.activeElement.blur) document.activeElement.blur();  // don't type mid-swipe
-        // size + position the clone chip exactly over the real address bar
-        s.barW = bar.offsetWidth;
-        chip.style.left = bar.offsetLeft + 'px'; chip.style.top = bar.offsetTop + 'px';
-        chip.style.width = bar.offsetWidth + 'px'; chip.style.height = bar.offsetHeight + 'px';
-        bar.classList.add('swiping');
         pageEl.style.transition = 'none'; peek.style.transition = 'none';
-        bar.style.transition = 'none'; chip.style.transition = 'none';
+        bottombar.style.transition = 'none'; barPeek.style.transition = 'none';
       }
       if(s.mode !== 'swipe') return;
       e.preventDefault();
       const next = dx < 0;                                     // swipe left → next tab
       const target = next ? s.sib[s.i + 1] : s.sib[s.i - 1];
       if(!target){                                            // no tab that way → rubber-band
-        peek.style.visibility = 'hidden'; chip.style.visibility = 'hidden';
+        peek.style.visibility = 'hidden'; barPeek.style.visibility = 'hidden';
         pageEl.style.transform = 'translateX(' + (dx * 0.25) + 'px)';
-        bar.style.transform = 'translateX(' + (dx * 0.25) + 'px)';
+        bottombar.style.transform = 'translateX(' + (dx * 0.25) + 'px)';
         s.target = null; return;
       }
       if(s.armed !== target.id){
         const c = tabContent(target);
         peek.className = c.cls + ' pagepeek';
         peek.innerHTML = c.html;
-        chipText.textContent = urlText(target);
+        peekInput.value = urlText(target);
         s.armed = target.id;
       }
-      peek.style.visibility = 'visible'; chip.style.visibility = 'visible';
-      peek.style.transform = 'translateX(' + ((next ? s.w : -s.w) + dx) + 'px)';
+      const off = (next ? s.w : -s.w) + dx;
+      peek.style.visibility = 'visible'; barPeek.style.visibility = 'visible';
+      peek.style.transform = 'translateX(' + off + 'px)';
       pageEl.style.transform = 'translateX(' + dx + 'px)';
-      bar.style.transform = 'translateX(' + dx + 'px)';
-      chip.style.transform = 'translateX(' + ((next ? s.barW + GAP : -(s.barW + GAP)) + dx) + 'px)';
+      bottombar.style.transform = 'translateX(' + dx + 'px)';
+      barPeek.style.transform = 'translateX(' + off + 'px)';
       s.dx = dx; s.target = target; s.next = next;
     });
 
@@ -1984,34 +1976,34 @@
       if(st.mode !== 'swipe') return;
       const tr = 'transform ' + DUR + 'ms cubic-bezier(.4,0,.2,1)';
       pageEl.style.transition = tr; peek.style.transition = tr;
-      bar.style.transition = tr; chip.style.transition = tr;
+      bottombar.style.transition = tr; barPeek.style.transition = tr;
       const commit = st.target && Math.abs(st.dx || 0) > st.w * 0.34;  // commit past ~34% of the width
-      function resetChip(){
-        bar.style.transition = 'none'; chip.style.transition = 'none';
-        bar.style.transform = ''; chip.style.transform = ''; chip.style.visibility = 'hidden';
-        bar.classList.remove('swiping');
+      function resetBar(){
+        bottombar.style.transition = 'none'; barPeek.style.transition = 'none';
+        bottombar.style.transform = ''; barPeek.style.transform = ''; barPeek.style.visibility = 'hidden';
+        requestAnimationFrame(() => { bottombar.style.transition = ''; });   // restore auto-hide / keyboard transitions
       }
       if(commit){
         const dir = st.next ? -1 : 1;
         pageEl.style.transform = 'translateX(' + (dir * st.w) + 'px)';
+        bottombar.style.transform = 'translateX(' + (dir * st.w) + 'px)';
         peek.style.transform = 'translateX(0px)';
-        bar.style.transform = 'translateX(' + (dir * (st.barW + GAP)) + 'px)';
-        chip.style.transform = 'translateX(0px)';
+        barPeek.style.transform = 'translateX(0px)';
         setTimeout(() => {
           state.activeId = st.target.id;
           pageEl.style.transition = 'none'; peek.style.transition = 'none';
           pageEl.style.transform = ''; peek.style.transform = ''; peek.style.visibility = 'hidden';
-          resetChip();
+          resetBar();
           renderChrome(); paintPage();
         }, DUR);
       } else {
         pageEl.style.transform = 'translateX(0px)';
-        bar.style.transform = 'translateX(0px)';
-        if(st.target){ peek.style.transform = 'translateX(' + (st.next ? st.w : -st.w) + 'px)'; chip.style.transform = 'translateX(' + (st.next ? st.barW + GAP : -(st.barW + GAP)) + 'px)'; }
+        bottombar.style.transform = 'translateX(0px)';
+        if(st.target){ const back = (st.next ? st.w : -st.w) + 'px'; peek.style.transform = 'translateX(' + back + ')'; barPeek.style.transform = 'translateX(' + back + ')'; }
         setTimeout(() => {
           peek.style.visibility = 'hidden';
           pageEl.style.transition = 'none'; pageEl.style.transform = '';
-          resetChip();
+          resetBar();
           requestAnimationFrame(() => { pageEl.style.transition = ''; });
         }, DUR);
       }
