@@ -1925,6 +1925,7 @@
     const chip = document.getElementById('addrChipPeek');
     const chipText = document.getElementById('addrChipPeekText');
     const DUR = 220;
+    const GAP = 16;                                            // breathing room between the two chips
     let s = null;
     function siblings(){ const a = active(); return state.tabs.filter(t => !!t.priv === !!a.priv); }
     function urlText(t){ return t.url || 'Search or enter address'; }
@@ -1972,7 +1973,7 @@
       peek.style.transform = 'translateX(' + ((next ? s.w : -s.w) + dx) + 'px)';
       pageEl.style.transform = 'translateX(' + dx + 'px)';
       bar.style.transform = 'translateX(' + dx + 'px)';
-      chip.style.transform = 'translateX(' + ((next ? s.barW : -s.barW) + dx) + 'px)';
+      chip.style.transform = 'translateX(' + ((next ? s.barW + GAP : -(s.barW + GAP)) + dx) + 'px)';
       s.dx = dx; s.target = target; s.next = next;
     });
 
@@ -1994,7 +1995,7 @@
         const dir = st.next ? -1 : 1;
         pageEl.style.transform = 'translateX(' + (dir * st.w) + 'px)';
         peek.style.transform = 'translateX(0px)';
-        bar.style.transform = 'translateX(' + (dir * st.barW) + 'px)';
+        bar.style.transform = 'translateX(' + (dir * (st.barW + GAP)) + 'px)';
         chip.style.transform = 'translateX(0px)';
         setTimeout(() => {
           state.activeId = st.target.id;
@@ -2006,7 +2007,7 @@
       } else {
         pageEl.style.transform = 'translateX(0px)';
         bar.style.transform = 'translateX(0px)';
-        if(st.target){ peek.style.transform = 'translateX(' + (st.next ? st.w : -st.w) + 'px)'; chip.style.transform = 'translateX(' + (st.next ? st.barW : -st.barW) + 'px)'; }
+        if(st.target){ peek.style.transform = 'translateX(' + (st.next ? st.w : -st.w) + 'px)'; chip.style.transform = 'translateX(' + (st.next ? st.barW + GAP : -(st.barW + GAP)) + 'px)'; }
         setTimeout(() => {
           peek.style.visibility = 'hidden';
           pageEl.style.transition = 'none'; pageEl.style.transform = '';
