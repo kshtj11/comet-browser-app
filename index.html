@@ -1905,13 +1905,13 @@
   // ---------- Swipe the ADDRESS BAR left/right to change tabs (animated preview) ----------
   // The whole bottom bar slides with the page; a clone bar carrying the adjacent
   // tab's URL slides in from the side, like a carousel. Only fires when the drag
-  // is within 40° of horizontal, so a diagonal drag won't accidentally trigger it.
+  // is within ±7° of horizontal, so a diagonal drag won't accidentally trigger it.
   (function(){
     const bar = document.getElementById('addrForm');            // the drag surface
     const bottombar = document.getElementById('bottombar');     // what actually slides
     const peek = document.getElementById('pagePeek');
     const DUR = 220;
-    const TAN40 = Math.tan(40 * Math.PI / 180);                 // ~0.839: max dy/dx to count as horizontal
+    const TAN_MAX = Math.tan(7 * Math.PI / 180);                // ~0.123: only near-horizontal (±7°) counts
     // clone the whole bar once; it slides in showing the adjacent tab's URL
     const barPeek = bottombar.cloneNode(true);
     barPeek.id = 'bottombarPeek';
@@ -1935,7 +1935,7 @@
       const dx = e.clientX - s.x0, dy = e.clientY - s.y0;
       if(s.mode === null){
         if(Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
-        if(Math.abs(dy) > Math.abs(dx) * TAN40){ s = null; return; }  // steeper than 40° → not a tab swipe
+        if(Math.abs(dy) > Math.abs(dx) * TAN_MAX){ s = null; return; }  // steeper than 7° → not a tab swipe
         s.mode = 'swipe';
         const sib = siblings(); s.sib = sib; s.i = sib.indexOf(active());
         try { bar.setPointerCapture(s.pid); } catch(_){}
