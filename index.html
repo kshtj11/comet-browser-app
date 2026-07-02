@@ -387,16 +387,20 @@
   .sheet.open { transform: translateY(0); }
   .sheet .grab { padding: 10px 0 4px; display: flex; justify-content: center; touch-action: none; }
   .sheet .grab i { width: 38px; height: 5px; border-radius: 3px; background: var(--surface-3); }
-  /* controls bar pinned to the bottom of the tabs sheet */
+  /* floating controls bar over the bottom of the tabs sheet */
   .sheet .tabsbar {
-    display: flex; align-items: center; gap: 10px;
-    padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0px));
-    border-top: 1px solid var(--line); background: #181818;
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 5;
+    display: flex; align-items: center; gap: 8px;
+    padding: 16px 14px calc(18px + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(rgba(24,24,24,0), rgba(24,24,24,.85) 45%, #181818);
+    pointer-events: none;                 /* let the grid scroll through the gaps */
   }
-  /* segmented toggles */
+  .sheet .tabsbar > * { pointer-events: auto; }
+  /* segmented toggles — floating buttons */
   .tabseg {
     display: flex; gap: 6px;
-    background: var(--surface); border-radius: 16px; padding: 6px;
+    background: #2b2b2b; border-radius: 16px; padding: 6px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.3);
   }
   .tabseg .seg {
     -webkit-appearance: none; appearance: none; border: none;
@@ -409,16 +413,47 @@
   .tabseg .seg svg { width: 24px; height: 24px; }
   .tabseg .seg.on { background: var(--surface-3); color: var(--text); }
   .colseg .seg { width: 44px; }
-  /* close all — chip pushed to the right, same pill style */
+  .tabsbar.aslist .colseg { display: none; }   /* columns only matter in grid layout */
+  /* close all — floating chip pushed to the right */
   .closeall-chip {
     margin-left: auto; -webkit-appearance: none; appearance: none; border: none;
-    height: 44px; padding: 0 18px; border-radius: 16px;
-    background: var(--surface); color: var(--text); cursor: pointer;
+    height: 56px; padding: 0 20px; border-radius: 16px;
+    background: #2b2b2b; color: var(--text); cursor: pointer;
     font-size: 15px; font-weight: 600;
     display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 3px 10px rgba(0,0,0,.3);
     transition: background .12s, transform .08s;
   }
-  .closeall-chip:active { transform: scale(.94); background: var(--surface-2); }
+  .closeall-chip:active { transform: scale(.94); background: #363636; }
+  /* tabs shown as a list inside the window view */
+  .tabgrid.aslist { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px 108px; }
+  .tabrow {
+    flex: 0 0 auto;
+    display: flex; align-items: center; gap: 14px; height: 62px;
+    padding: 0 12px; border-radius: 14px; background: var(--surface); cursor: pointer;
+    border: 2px solid transparent;
+  }
+  .tabrow:active { background: var(--surface-2); }
+  .tabrow.active { border-color: var(--accent); }
+  .tabrow.priv { background: #1b1830; }
+  .tabrow .fav {
+    flex: 0 0 auto; width: 40px; height: 40px; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700;
+  }
+  .tabrow .tt {
+    flex: 1; min-width: 0; font-size: 18px; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .tabrow.newrow { background: transparent; border: 2px dashed var(--line); }
+  .tabrow.newrow:active { background: var(--surface); }
+  .tabrow .fav.addfav { background: var(--surface-2); color: var(--text); font-size: 22px; }
+  .tabrow .tclose {
+    flex: 0 0 auto; width: 40px; height: 40px; border: none; background: none;
+    color: var(--dim); font-size: 22px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-appearance: none; appearance: none;
+  }
 
   /* undo snackbar (bottom half) */
   .snack {
@@ -444,7 +479,7 @@
   .tabgrid {
     flex: 1; overflow-y: auto; touch-action: none;   /* JS handles scroll + pull-to-dismiss (touch & mouse) */
     -webkit-overflow-scrolling: touch;
-    padding: 8px 16px 20px;
+    padding: 8px 16px 108px;
     display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
     grid-auto-rows: max-content;   /* don't stretch/shrink rows to fit */
     align-content: start;
@@ -590,7 +625,7 @@
   .tablist.open { transform: scale(1); opacity: 1; pointer-events: auto; }
   .tlwrap { position: relative; }
   .tlbody {
-    max-height: 338px;            /* + the new-tab chip row ≈ settings menu height */
+    max-height: 284px;            /* ~5.25 rows visible (54px each) */
     overflow-y: auto; overflow-x: hidden; touch-action: pan-y;
     -webkit-overflow-scrolling: touch;
   }
@@ -607,7 +642,7 @@
   }
   .tlrow.active { background: #1c1c1c; }
   .tlrow .tlname {
-    flex: 1; min-width: 0; font-size: 15px; color: var(--text);
+    flex: 1; min-width: 0; font-size: 18px; color: var(--text);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .tlrow .tlx {
@@ -633,15 +668,16 @@
   }
   .tlchip {
     -webkit-appearance: none; appearance: none; border: none;
-    flex: 1; height: 42px; border-radius: 11px;
-    background: #2e2e2e; color: var(--text);
-    font: 600 14px/1 inherit; cursor: pointer;
+    flex: 1; height: 54px; border-radius: 14px;
+    background: #3a3a3a; color: #ffffff;
+    font: 600 15px/1 inherit; cursor: pointer;
     display: flex; align-items: center; justify-content: center; gap: 6px;
     transition: background .12s, transform .08s;
   }
-  .tlchip:active { transform: scale(.96); background: #383838; }
-  .tlchip.priv { background: #262433; color: #c9b8ff; }
-  .tlchip.priv:active { background: #2f2c40; }
+  .tlchip:active { transform: scale(.96); background: #474747; }
+  .tlchip.priv { background: #4a3f7a; color: #ffffff; }
+  .tlchip.priv:active { background: #564a8c; }
+  .tlchip svg { width: 28px; height: 28px; }
 
   /* ---- Sub panels (slide in from right) ---- */
   .panel {
@@ -783,6 +819,65 @@
   .permrow .pdesc { display: flex; align-items: center; gap: 6px; font-size: 15px; color: var(--dim); margin-top: 3px; }
   .permrow .pdesc svg { flex: 0 0 auto; }
   .permrow .ptime { flex: 0 0 auto; font-size: 14px; color: var(--dim); font-variant-numeric: tabular-nums; }
+
+  /* ---- Find in page bar (rides above the keyboard, page stays interactive) ---- */
+  .findbar {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 40;
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px 30px; background: var(--bg);
+    transform: translateY(120%); pointer-events: none;
+    transition: transform .25s cubic-bezier(.4,0,.2,1), bottom .25s cubic-bezier(.4,0,.2,1);
+  }
+  .frame.find-open .findbar { transform: translateY(0); pointer-events: auto; }
+  .frame.find-open.kbd-open .findbar { bottom: 240px; padding-bottom: 10px; }
+  .frame.find-open .bottombar { display: none; }
+  .findpill {
+    flex: 1; min-width: 0; height: 52px; display: flex; align-items: center; gap: 10px;
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 26px; padding: 0 18px;
+  }
+  .findpill input { flex: 1; min-width: 0; background: none; border: none; outline: none; color: var(--text); font-size: 16px; }
+  .findpill input::placeholder { color: var(--dim); }
+  .findcount { flex: 0 0 auto; color: var(--dim); font-size: 15px; font-variant-numeric: tabular-nums; }
+  .findnav, .findclose {
+    flex: 0 0 auto; width: 48px; height: 48px; border-radius: 14px;
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--text);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    -webkit-appearance: none; appearance: none;
+    transition: background .12s, transform .08s;
+  }
+  .findnav:active, .findclose:active { transform: scale(.92); background: var(--surface-3); }
+  .findnav:disabled { opacity: .35; }
+  mark.findhit { background: #ffe066; color: #1a1a1a; border-radius: 2px; }
+  mark.findhit.cur { background: #ff9d2e; color: #1a1a1a; }
+
+  /* ---- Long-press contextual menu ---- */
+  .ctxmenu {
+    position: absolute; z-index: 45; width: 244px;
+    background: #242424; border: 1px solid #333333; border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    overflow: hidden; opacity: 0; transform: scale(.9);
+    transform-origin: top left; pointer-events: none;
+    transition: opacity .14s, transform .14s;
+  }
+  .ctxmenu.open { opacity: 1; transform: scale(1); pointer-events: auto; }
+  .ctxwrap { position: relative; }
+  .ctxscroll { max-height: 150px; overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+  .ctxscroll::-webkit-scrollbar { display: none; }
+  .ctxrow {
+    display: flex; align-items: center; gap: 14px; height: 44px; padding: 0 18px;
+    font-size: 16px; color: var(--text); cursor: pointer; white-space: nowrap;
+  }
+  .ctxrow:active { background: #2e2e2e; }
+  .ctxrow .ci { flex: 0 0 auto; width: 22px; height: 22px; color: var(--dim); display: flex; align-items: center; justify-content: center; }
+  .ctxrow .ci svg { width: 20px; height: 20px; }
+  .ctxfade {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 24px;
+    background: linear-gradient(rgba(36,36,36,0), #242424);
+    pointer-events: none; opacity: 0; transition: opacity .15s;
+  }
+  .ctxfade.show { opacity: 1; }
+  /* our own long-press menu replaces the native callout/selection on the page */
+  #page { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 </style>
 </head>
 <body>
@@ -818,6 +913,23 @@
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
         </button>
       </div>
+
+      <!-- find in page bar (above the keyboard) -->
+      <div class="findbar" id="findbar">
+        <div class="findpill">
+          <input id="findInput" type="text" placeholder="Find in page" autocomplete="off" spellcheck="false" enterkeyhint="next">
+          <span class="findcount" id="findCount">0/0</span>
+        </div>
+        <button class="findnav" id="findPrev" title="Previous" aria-label="Previous match">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>
+        </button>
+        <button class="findnav" id="findNext" title="Next" aria-label="Next match">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <button class="findclose" id="findClose" title="Close" aria-label="Close find">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- ================= TABS PAGE ================= -->
@@ -831,6 +943,14 @@
           </button>
           <button class="seg" data-priv="1" title="Private tabs" aria-label="Private tabs">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l2-6h14l2 6"/><circle cx="7" cy="15" r="2.5"/><circle cx="17" cy="15" r="2.5"/><path d="M9.4 14.5h5.2"/></svg>
+          </button>
+        </div>
+        <div class="tabseg" id="layoutSeg">
+          <button class="seg on" data-layout="grid" title="Grid" aria-label="Grid layout">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>
+          </button>
+          <button class="seg" data-layout="list" title="List" aria-label="List layout">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="8" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>
           </button>
         </div>
         <div class="tabseg colseg" id="colSeg">
@@ -872,6 +992,10 @@
           <div class="item" data-act="devtools">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 8 4 12 8 16"/><polyline points="16 8 20 12 16 16"/><line x1="13.5" y1="6" x2="10.5" y2="18"/></svg>
             Remote developer tools
+          </div>
+          <div class="item" data-act="share">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>
+            Share
           </div>
           <div class="item" data-act="desktop">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
@@ -968,10 +1092,6 @@
           </div>
           <div class="toggle" id="tgDark" style="margin-top:12px"><span class="tl">Force dark mode</span><span class="sw"></span></div>
 
-          <div class="sechead" style="margin-top:26px">Permissions</div>
-          <div class="permnote">Sites that recently used the camera, microphone, location or other sensitive features.</div>
-          <div class="permlist" id="permList"></div>
-
           <div class="sechead" style="margin-top:26px">Accessibility</div>
           <div class="lbl">Text size <span class="sizeval" id="sizeVal">16 pt</span></div>
           <div class="sizewrap">
@@ -988,7 +1108,6 @@
           </div>
           <div class="lbl">Display</div>
           <div class="toggle" id="tgHC"><span class="tl">High contrast</span><span class="sw"></span></div>
-          <div class="toggle" id="tgBig"><span class="tl">Larger tap targets</span><span class="sw"></span></div>
         </div>
       </div>
     </div>
@@ -1019,6 +1138,14 @@
     <div class="backhint" id="backhint">
       <svg class="arrow" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
       <span class="bh-letter">L</span>
+    </div>
+
+    <!-- long-press contextual menu -->
+    <div class="ctxmenu" id="ctxMenu">
+      <div class="ctxwrap">
+        <div class="ctxscroll" id="ctxScroll"></div>
+        <div class="ctxfade" id="ctxFade"></div>
+      </div>
     </div>
   </div>
 
@@ -1062,6 +1189,7 @@
     tabsView: 'window',     // 'window' (grid) or 'list'
     tabPriv: false,         // grid is showing the private set?
     tabCols: 2,             // grid columns in window view (2 or 3)
+    tabLayout: 'grid',      // window view layout: 'grid' or 'list'
     activeId: null,
     history: [],     // {title,url,kind}
     bookmarks: [],   // {title,url,kind}
@@ -1092,6 +1220,11 @@
   const pageEl = document.getElementById('page');
   const addrInput = document.getElementById('addrInput');
 
+  // The frame is overflow:hidden but the browser can still natively scroll it
+  // when an input is focused (to bring the caret into view), which shifts the
+  // whole UI up and reveals hidden sheets. Pin it so it never scrolls.
+  frame.addEventListener('scroll', () => { frame.scrollTop = 0; frame.scrollLeft = 0; });
+
   // ---------- Render ----------
   function colorFor(str){
     let h = 0; for(let i=0;i<str.length;i++) h = (h*31 + str.charCodeAt(i)) % 360;
@@ -1117,6 +1250,24 @@
     if(t.kind === 'home') return '·';
     if(t.kind === 'query') return '?';
     return (t.title[0]||'?').toUpperCase();
+  }
+  // human-readable page title (shown in the tab lists instead of the bare URL)
+  const PAGE_TITLES = {
+    'comet.design':'Comet — one-handed reading',
+    'monkeytype.com':'Monkeytype — typing test',
+    'foss.org':'FOSS — free software gallery',
+    'heavypaint.app':'HEAVYPAINT — paint loud',
+    'archlinux.org':'Arch Linux — a simple, lightweight distribution',
+    'wikipedia.org':'Wikipedia — the free encyclopedia',
+    'github.com':'GitHub — build software better, together',
+    'news.ycombinator.com':'Hacker News',
+    'proton.me':'Proton — privacy by default',
+    'search.brave.com':'Brave Search — private search'
+  };
+  function pageTitle(t){
+    if(t.kind === 'home') return 'New tab';
+    if(t.kind === 'query') return t.title;
+    return PAGE_TITLES[t.title] || cap(t.title);
   }
 
   function homePage(){
@@ -1312,31 +1463,56 @@
   function renderTabGrid(){
     const grid = document.getElementById('tabGrid');
     grid.innerHTML = '';
-    grid.classList.toggle('cols3', state.tabCols === 3);
-    // reflect which set / column count the segmented controls are showing
+    const asList = state.tabLayout === 'list';
+    grid.classList.toggle('aslist', asList);
+    grid.classList.toggle('cols3', !asList && state.tabCols === 3);
+    const bar = document.querySelector('.tabsbar'); if(bar) bar.classList.toggle('aslist', asList);
+    // reflect the segmented controls
     document.querySelectorAll('#tabSeg .seg').forEach(s => s.classList.toggle('on', (s.getAttribute('data-priv') === '1') === state.tabPriv));
     document.querySelectorAll('#colSeg .seg').forEach(s => s.classList.toggle('on', +s.getAttribute('data-cols') === state.tabCols));
+    document.querySelectorAll('#layoutSeg .seg').forEach(s => s.classList.toggle('on', s.getAttribute('data-layout') === state.tabLayout));
     const list = state.tabs.filter(t => !!t.priv === state.tabPriv);
-    list.forEach(t => {
-      const card = document.createElement('div');
-      card.className = 'tabcard' + (t.id === state.activeId ? ' active' : '') + (t.priv ? ' priv' : '');
-      const prev = t.priv ? PRIV_GLYPH : esc(initial(t));
-      card.innerHTML =
-        `<div class="prev" style="background:${t.priv ? '' : colorFor(t.title)}">${prev}</div>`+
-        `<div class="meta"><span>${esc(t.title)}</span><button class="x" data-close-tab="${t.id}">×</button></div>`;
-      card.addEventListener('click', (e) => {
-        if(e.target.closest('[data-close-tab]')) return;
-        state.activeId = t.id;
-        renderAll();
-        closeSheet();
+
+    if(asList){
+      list.forEach(t => {
+        const row = document.createElement('div');
+        row.className = 'tabrow' + (t.id === state.activeId ? ' active' : '') + (t.priv ? ' priv' : '');
+        const c = iconColors(t.title);
+        row.innerHTML =
+          `<div class="fav" style="background:${c.bg};color:${c.fg}">${esc(initial(t))}</div>`+
+          `<div class="tt">${esc(pageTitle(t))}</div>`+
+          `<button class="tclose" data-close-tab="${t.id}">×</button>`;
+        row.addEventListener('click', (e) => {
+          if(e.target.closest('[data-close-tab]')) return;
+          state.activeId = t.id; renderAll(); closeSheet();
+        });
+        grid.appendChild(row);
       });
-      grid.appendChild(card);
-    });
-    const add = document.createElement('button');
-    add.className = 'newtab';
-    add.textContent = '+';
-    add.addEventListener('click', () => { newTab(state.tabPriv); closeSheet(); });
-    grid.appendChild(add);
+      const addRow = document.createElement('div');
+      addRow.className = 'tabrow newrow';
+      addRow.innerHTML = `<div class="fav addfav">+</div><div class="tt">New ${state.tabPriv ? 'private ' : ''}tab</div>`;
+      addRow.addEventListener('click', () => { newTab(state.tabPriv); closeSheet(); });
+      grid.appendChild(addRow);
+    } else {
+      list.forEach(t => {
+        const card = document.createElement('div');
+        card.className = 'tabcard' + (t.id === state.activeId ? ' active' : '') + (t.priv ? ' priv' : '');
+        const prev = t.priv ? PRIV_GLYPH : esc(initial(t));
+        card.innerHTML =
+          `<div class="prev" style="background:${t.priv ? '' : colorFor(t.title)}">${prev}</div>`+
+          `<div class="meta"><span>${esc(t.title)}</span><button class="x" data-close-tab="${t.id}">×</button></div>`;
+        card.addEventListener('click', (e) => {
+          if(e.target.closest('[data-close-tab]')) return;
+          state.activeId = t.id; renderAll(); closeSheet();
+        });
+        grid.appendChild(card);
+      });
+      const add = document.createElement('button');
+      add.className = 'newtab';
+      add.textContent = '+';
+      add.addEventListener('click', () => { newTab(state.tabPriv); closeSheet(); });
+      grid.appendChild(add);
+    }
 
     grid.querySelectorAll('[data-close-tab]').forEach(btn => {
       btn.addEventListener('click', (e) => { e.stopPropagation(); closeTab(btn.getAttribute('data-close-tab')); });
@@ -1516,7 +1692,7 @@
         : '';
       row.innerHTML =
         `<div class="tlico" style="background:${c.bg};color:${c.fg}">${esc(initial(t))}</div>`+
-        `<div class="tlname">${esc(t.title)}</div>`+ privBadge +
+        `<div class="tlname">${esc(pageTitle(t))}</div>`+ privBadge +
         `<button class="tlx" data-close-tab="${t.id}">×</button>`;
       row.addEventListener('click', (e) => {
         if(e.target.closest('[data-close-tab]')) return;
@@ -1573,7 +1749,7 @@
   document.getElementById('plusBtn').addEventListener('click', () => newTab(false));
   document.getElementById('tabsBtn').addEventListener('click', openTabsView);
   document.getElementById('menuBtn').addEventListener('click', openMenu);
-  scrim.addEventListener('click', () => { closeMenu(); closeTabsList(); });
+  scrim.addEventListener('click', () => { closeMenu(); closeTabsList(); closeCtx(); });
 
   // tabs grid: normal / private segmented toggle + open private window
   document.getElementById('tabSeg').addEventListener('click', (e) => {
@@ -1585,6 +1761,12 @@
   document.getElementById('colSeg').addEventListener('click', (e) => {
     const b = e.target.closest('.seg'); if(!b) return;
     state.tabCols = +b.getAttribute('data-cols');
+    renderTabGrid();
+  });
+  // window layout (grid / list)
+  document.getElementById('layoutSeg').addEventListener('click', (e) => {
+    const b = e.target.closest('.seg'); if(!b) return;
+    state.tabLayout = b.getAttribute('data-layout');
     renderTabGrid();
   });
   // close all tabs in the current (normal / private) set, with an Undo snackbar
@@ -1623,7 +1805,7 @@
       if(act === 'newtab'){ closeMenu(); newTab(false); return; }
       if(act === 'newprivate'){ closeMenu(); newTab(true); return; }
       if(act === 'desktop'){ it.classList.toggle('on'); frame.classList.toggle('desktopsite', it.classList.contains('on')); return; }
-      if(act === 'devtools'){ closeMenu(); return; }    // no-op in the prototype
+      if(act === 'devtools' || act === 'share'){ closeMenu(); return; }    // no-op in the prototype
       closeMenu();
       openPanel(act);
     });
@@ -1636,6 +1818,8 @@
 
   // System back. Unwinds whatever layer is open: panel → menu → tabs sheet → page back.
   function systemBack(){
+    if(ctxMenu.classList.contains('open')){ closeCtx(); return; }
+    if(frame.classList.contains('find-open')){ closeFind(); return; }
     if(document.querySelector('.panel.open')){ closePanels(); return; }
     if(menu.classList.contains('open')){ closeMenu(); return; }
     if(tablist.classList.contains('open')){ closeTabsList(); return; }
@@ -1855,6 +2039,7 @@
       if(v === 'sym' || v === 'fn'){ return; }            // visual only
       if(v === 'back'){ del(kbInput); return; }
       if(v === 'enter'){
+        if(kbInput.id === 'findInput'){ document.getElementById('findNext').click(); return; }  // step matches, keep find open
         const f = kbInput.form;
         if(f){ if(f.requestSubmit) f.requestSubmit(); else f.dispatchEvent(new Event('submit', {cancelable:true})); }
         kbInput.blur(); closeKb(); return;
@@ -1869,8 +2054,136 @@
   // history actions
   document.getElementById('clearHistory').addEventListener('click', () => { state.history = []; renderHistory(); });
 
-  // find-in-page (visual only in the prototype)
-  document.getElementById('navFind').addEventListener('click', () => { closeMenu(); });
+  // find-in-page — opens the find bar over the keyboard; page stays interactive
+  document.getElementById('navFind').addEventListener('click', () => { closeMenu(); openFind(); });
+
+  // ---------- Find in page ----------
+  const findbar = document.getElementById('findbar');
+  const findInput = document.getElementById('findInput');
+  const findCount = document.getElementById('findCount');
+  let findHits = [], findIdx = -1;
+  function clearFindMarks(){
+    pageEl.querySelectorAll('mark.findhit').forEach(m => m.replaceWith(document.createTextNode(m.textContent)));
+    pageEl.normalize();
+    findHits = []; findIdx = -1;
+  }
+  function updateFindCount(){ findCount.textContent = (findHits.length ? findIdx + 1 : 0) + '/' + findHits.length; }
+  function markCur(){
+    findHits.forEach((m, i) => m.classList.toggle('cur', i === findIdx));
+    if(findIdx >= 0) findHits[findIdx].scrollIntoView({ block: 'center' });
+  }
+  function runFind(q){
+    clearFindMarks();
+    q = (q || '').trim();
+    if(q){
+      const ql = q.toLowerCase();
+      const walker = document.createTreeWalker(pageEl, NodeFilter.SHOW_TEXT, {
+        acceptNode(n){ return n.nodeValue && n.nodeValue.toLowerCase().indexOf(ql) !== -1 ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; }
+      });
+      const nodes = []; while(walker.nextNode()) nodes.push(walker.currentNode);
+      nodes.forEach(node => {
+        const text = node.nodeValue, lower = text.toLowerCase();
+        const frag = document.createDocumentFragment(); let i = 0, idx;
+        while((idx = lower.indexOf(ql, i)) !== -1){
+          if(idx > i) frag.appendChild(document.createTextNode(text.slice(i, idx)));
+          const mk = document.createElement('mark'); mk.className = 'findhit'; mk.textContent = text.slice(idx, idx + q.length); frag.appendChild(mk);
+          i = idx + q.length;
+        }
+        if(i < text.length) frag.appendChild(document.createTextNode(text.slice(i)));
+        node.parentNode.replaceChild(frag, node);
+      });
+      findHits = Array.from(pageEl.querySelectorAll('mark.findhit'));
+      findIdx = findHits.length ? 0 : -1;
+      markCur();
+    }
+    updateFindCount();
+  }
+  function findStep(d){ if(!findHits.length) return; findIdx = (findIdx + d + findHits.length) % findHits.length; markCur(); updateFindCount(); }
+  function openFind(){ frame.classList.add('find-open'); findInput.value = ''; runFind(''); setTimeout(() => findInput.focus({ preventScroll: true }), 60); }
+  function closeFind(){ frame.classList.remove('find-open'); clearFindMarks(); findInput.blur(); }
+  findInput.addEventListener('input', () => runFind(findInput.value));
+  findInput.addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); findStep(e.shiftKey ? -1 : 1); } });
+  document.getElementById('findPrev').addEventListener('click', () => findStep(-1));
+  document.getElementById('findNext').addEventListener('click', () => findStep(1));
+  document.getElementById('findClose').addEventListener('click', closeFind);
+
+  // ---------- Long-press contextual menu ----------
+  const ctxMenu = document.getElementById('ctxMenu');
+  const ctxScroll = document.getElementById('ctxScroll');
+  const ctxFade = document.getElementById('ctxFade');
+  const CI = {
+    ntab:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+    priv:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l2-6h14l2 6"/><circle cx="7" cy="15" r="2.5"/><circle cx="17" cy="15" r="2.5"/><path d="M9.4 14.5h5.2"/></svg>',
+    copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+    text:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>',
+    share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>',
+    dl:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 11l5 4 5-4"/><path d="M5 21h14"/></svg>',
+    back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+    fwd:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>',
+    reload:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-1.5 5"/><path d="M20 4v6h-6"/></svg>',
+    star:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 18.8 6.2 21l1.1-6.5L2.6 9.8l6.5-.9z"/></svg>',
+    find:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="10.5" cy="11.5" r="3"/><path d="M13 14l2.6 2.6"/></svg>'
+  };
+  function ctxOptions(target){
+    const link = target && target.closest ? target.closest('[data-go]') : null;
+    if(link){
+      const url = link.getAttribute('data-go');
+      return [
+        ['Open in new tab', CI.ntab, () => { const t = makeTab(url); state.tabs.push(t); state.tabPriv = false; state.activeId = t.id; renderChrome(); beginLoad(); }],
+        ['Open in new private tab', CI.priv, () => { const t = makeTab(url, 'dark', true); state.tabs.push(t); state.tabPriv = true; state.activeId = t.id; renderChrome(); beginLoad(); }],
+        ['Copy link', CI.copy, () => {}],
+        ['Copy link text', CI.text, () => {}],
+        ['Share link…', CI.share, () => {}],
+        ['Download linked file', CI.dl, () => {}]
+      ];
+    }
+    return [
+      ['Back', CI.back, () => goBack()],
+      ['Forward', CI.fwd, () => goFwd()],
+      ['Reload', CI.reload, () => { const t = active(); (t.kind === 'home') ? paintPage() : beginLoad(); }],
+      ['Add to bookmarks', CI.star, () => toggleBookmarkCurrent()],
+      ['Find in page', CI.find, () => openFind()],
+      ['Share…', CI.share, () => {}],
+      ['Save page', CI.dl, () => {}]
+    ];
+  }
+  function updateCtxFade(){ ctxFade.classList.toggle('show', ctxScroll.scrollTop + ctxScroll.clientHeight < ctxScroll.scrollHeight - 2); }
+  ctxScroll.addEventListener('scroll', updateCtxFade, { passive: true });
+  function closeCtx(){ ctxMenu.classList.remove('open'); if(!menu.classList.contains('open') && !tablist.classList.contains('open')) scrim.classList.remove('open'); }
+  function showCtx(cx, cy, target){
+    const opts = ctxOptions(target);
+    ctxScroll.innerHTML = '';
+    opts.forEach(o => {
+      const row = document.createElement('div'); row.className = 'ctxrow';
+      row.innerHTML = `<span class="ci">${o[1]}</span><span>${esc(o[0])}</span>`;
+      row.addEventListener('click', () => { closeCtx(); o[2](); });
+      ctxScroll.appendChild(row);
+    });
+    const r = frame.getBoundingClientRect();
+    const W = 244, H = Math.min(opts.length * 44, 150) + 2;
+    let px = cx - r.left, py = cy - r.top;
+    px = Math.min(Math.max(8, px), r.width - W - 8);
+    py = Math.min(Math.max(8, py), r.height - H - 8);
+    ctxMenu.style.left = px + 'px'; ctxMenu.style.top = py + 'px';
+    scrim.classList.add('open'); ctxMenu.classList.add('open');
+    ctxScroll.scrollTop = 0; requestAnimationFrame(updateCtxFade);
+  }
+  (function(){
+    let timer = null, sx = 0, sy = 0, fired = false, tgt = null;
+    pageEl.addEventListener('pointerdown', (e) => {
+      sx = e.clientX; sy = e.clientY; fired = false; tgt = e.target;
+      clearTimeout(timer);
+      timer = setTimeout(() => { fired = true; showCtx(sx, sy, tgt); }, 500);
+    });
+    pageEl.addEventListener('pointermove', (e) => {
+      if(timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 10){ clearTimeout(timer); timer = null; }
+    });
+    function end(){ clearTimeout(timer); timer = null; }
+    pageEl.addEventListener('pointerup', end);
+    pageEl.addEventListener('pointercancel', end);
+    pageEl.addEventListener('click', (e) => { if(fired){ e.preventDefault(); e.stopPropagation(); fired = false; } }, true);
+    pageEl.addEventListener('contextmenu', (e) => e.preventDefault());
+  })();
 
   // default search engine — single-line row that expands to a type-to-filter list
   state.searchEngine = 'DuckDuckGo';
@@ -1908,37 +2221,6 @@
     paintPage();
   });
 
-  // permissions — recent sensitive-feature activity (modelled on iOS App Privacy Report / Chrome site activity)
-  const PERM_ICON = {
-    location: { d:'<path d="M12 21s-6-5.7-6-10a6 6 0 1 1 12 0c0 4.3-6 10-6 10z"/><circle cx="12" cy="11" r="2"/>', bg:'#2f6bd8', fg:'#fff' },
-    camera:   { d:'<path d="M3 8h3l1.5-2h9L18 8h3v11H3z"/><circle cx="12" cy="13" r="3.2"/>', bg:'#c2453a', fg:'#fff' },
-    mic:      { d:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/>', bg:'#5a9e4f', fg:'#fff' },
-    clipboard:{ d:'<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4h6v3H9zM8 11h8M8 15h6"/>', bg:'#b58a2e', fg:'#fff' },
-  };
-  function permIcon(kind){
-    const m = PERM_ICON[kind] || PERM_ICON.location;
-    return `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${m.d}</svg>`;
-  }
-  const PERMS = [
-    { site:'maps.comet.design', perm:'Location',     kind:'location',  time:'2m ago' },
-    { site:'meet.foss.org',     perm:'Camera',       kind:'camera',    time:'18m ago' },
-    { site:'meet.foss.org',     perm:'Microphone',   kind:'mic',       time:'18m ago' },
-    { site:'monkeytype.com',    perm:'Clipboard',    kind:'clipboard', time:'1h ago' },
-    { site:'heavypaint.app',    perm:'Location',     kind:'location',  time:'Yesterday' },
-  ];
-  function renderPerms(){
-    const el = document.getElementById('permList');
-    el.innerHTML = PERMS.map(p => {
-      const m = PERM_ICON[p.kind] || PERM_ICON.location;
-      return `<div class="permrow">`+
-        `<div class="pico" style="background:${m.bg};color:${m.fg}">${esc((p.site[0]||'?').toUpperCase())}</div>`+
-        `<div class="pmid"><div class="pname">${esc(p.site)}</div>`+
-        `<div class="pdesc">${permIcon(p.kind)}<span>Used ${esc(p.perm)}</span></div></div>`+
-        `<div class="ptime">${esc(p.time)}</div></div>`;
-    }).join('');
-  }
-  renderPerms();
-
   // accessibility — text size slider (12–20pt, default 16, ±4; scales the page)
   const sizeRange = document.getElementById('sizeRange');
   const sizeVal = document.getElementById('sizeVal');
@@ -1946,7 +2228,6 @@
   sizeRange.addEventListener('input', () => applyTextSize(+sizeRange.value));
   applyTextSize(+sizeRange.value);
   document.getElementById('tgHC').addEventListener('click', function(){ this.classList.toggle('on'); frame.classList.toggle('hc', this.classList.contains('on')); });
-  document.getElementById('tgBig').addEventListener('click', function(){ this.classList.toggle('on'); frame.classList.toggle('big', this.classList.contains('on')); });
 
   // ---------- Tabs sheet drag-to-dismiss (Pointer Events only) ----------
   const grab = document.getElementById('tabsGrab');
